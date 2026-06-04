@@ -4,6 +4,7 @@ const navItems = [
   { to: '/', label: '小记', end: true },
   { to: '/articles', label: '文章', end: false },
   { to: '/photos', label: '照片', end: false },
+  { to: '/about', label: '关于', end: false },
 ]
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>

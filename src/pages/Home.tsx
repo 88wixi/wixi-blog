@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { articles, categoryMeta } from '../data/articles.ts'
 import { useReveal } from '../hooks/useReveal.ts'
+import Hitokoto from '../components/Hitokoto.tsx'
 
 const heroImages = [
   'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=2000&q=80',
@@ -104,7 +105,7 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Slide indicators */}
+          {/* 轮播指示器（右下角） */}
           <div className="absolute bottom-5 right-5 z-10 flex items-center gap-1.5 sm:bottom-6 sm:right-8">
             {heroImages.map((_, i) => (
               <button
@@ -124,22 +125,56 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Status row */}
-      <section className="border-y border-paper-200/70 bg-paper-50">
-        <div className="mx-auto grid w-full max-w-6xl gap-4 px-5 py-5 sm:grid-cols-3 sm:px-8 sm:py-6">
-          {statusItems.map((item, i) => (
-            <div
-              key={item.label}
-              className="anim-fade-up flex items-center gap-3 text-sm"
-              style={delay(500 + i * 80)}
-            >
-              <span className={`dot-pulse inline-flex h-2 w-2 shrink-0 rounded-full ${item.dot}`}>
-                <span className="h-2 w-2 rounded-full bg-current" />
-              </span>
-              <span className="text-ink-500">{item.label}:</span>
-              <span className="truncate font-medium text-ink-900">{item.value}</span>
+      {/* 今日 · 报刊版面：左一言 + 右 NOW */}
+      <section className="relative overflow-hidden border-y border-paper-200/70 bg-gradient-to-br from-paper-100/40 via-paper-50 to-paper-100/30 py-14 sm:py-20">
+        {/* 装饰背景：左上 + 右下两个超大色块虚化 */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-32 -top-32 h-72 w-72 rounded-full bg-coral-300/15 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-32 -right-24 h-72 w-72 rounded-full bg-sage-300/15 blur-3xl"
+        />
+
+        <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
+          <div className="grid gap-12 lg:grid-cols-5 lg:gap-16">
+            {/* 左 3/5：一言 */}
+            <div className="lg:col-span-3">
+              <Hitokoto />
             </div>
-          ))}
+
+            {/* 右 2/5：NOW */}
+            <aside className="relative lg:col-span-2 lg:border-l lg:border-paper-200/80 lg:pl-12 xl:pl-14">
+              <div className="mb-6 flex items-center gap-3 text-[11px] font-medium tracking-[0.32em] text-coral-500 uppercase">
+                <span className="h-px w-8 bg-coral-400/60" />
+                now · 现在
+              </div>
+              <ul className="space-y-5 sm:space-y-6">
+                {statusItems.map((item, i) => (
+                  <li
+                    key={item.label}
+                    className="anim-fade-up flex items-start gap-3.5"
+                    style={delay(200 + i * 80)}
+                  >
+                    <span
+                      className={`dot-pulse mt-1.5 inline-flex h-2 w-2 shrink-0 rounded-full ${item.dot}`}
+                    >
+                      <span className="h-2 w-2 rounded-full bg-current" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-medium tracking-[0.25em] text-ink-500 uppercase">
+                        {item.label}
+                      </div>
+                      <div className="mt-1 font-serif text-base text-ink-900 sm:text-lg">
+                        {item.value}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          </div>
         </div>
       </section>
 

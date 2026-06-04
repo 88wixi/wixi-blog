@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { articles, categoryMeta, type Category } from '../data/articles.ts'
 
 const formatDate = (d: string) => {
@@ -19,7 +19,12 @@ const filters: { value: Filter; label: string }[] = [
   { value: 'observation', label: '观察' },
 ]
 
+const allTags = Array.from(new Set(articles.flatMap((a) => a.tags))).sort()
+
 const Articles = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTag = searchParams.get('tag')
+
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [visible, setVisible] = useState(false)
@@ -28,12 +33,13 @@ const Articles = () => {
     setVisible(false)
     const id = requestAnimationFrame(() => setVisible(true))
     return () => cancelAnimationFrame(id)
-  }, [filter])
+  }, [filter, activeTag])
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase()
     return [...articles]
       .filter((a) => (filter === 'all' ? true : a.category === filter))
+      .filter((a) => (activeTag ? a.tags.includes(activeTag) : true))
       .filter((a) =>
         q
           ? a.title.toLowerCase().includes(q) ||
@@ -42,7 +48,20 @@ const Articles = () => {
           : true,
       )
       .sort((a, b) => (a.date < b.date ? 1 : -1))
-  }, [filter, query])
+  }, [filter, query, activeTag])
+
+  const toggleTag = (tag: string) => {
+    const next = new URLSearchParams(searchParams)
+    if (activeTag === tag) next.delete('tag')
+    else next.set('tag', tag)
+    setSearchParams(next, { replace: true })
+  }
+
+  const clearTag = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('tag')
+    setSearchParams(next, { replace: true })
+  }
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-14 sm:px-8 sm:py-20">
@@ -81,7 +100,7 @@ const Articles = () => {
         </div>
       </div>
 
-      <div className="mb-10 flex flex-wrap gap-2">
+      <div className="mb-6 flex flex-wrap gap-2">
         {filters.map((f) => {
           const active = filter === f.value
           return (
@@ -100,6 +119,37 @@ const Articles = () => {
             </button>
           )
         })}
+      </div>
+
+      <div className="mb-10 flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-xs text-ink-500">标签</span>
+        {allTags.map((tag) => {
+          const active = activeTag === tag
+          return (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => toggleTag(tag)}
+              className={[
+                'rounded-full px-3 py-1 text-xs transition-all',
+                active
+                  ? 'bg-coral-500 text-paper-50 shadow-sm'
+                  : 'border border-paper-200 bg-paper-50 text-ink-500 hover:border-coral-400 hover:text-coral-600',
+              ].join(' ')}
+            >
+              #{tag}
+            </button>
+          )
+        })}
+        {activeTag && (
+          <button
+            type="button"
+            onClick={clearTag}
+            className="ml-1 text-xs text-ink-500 underline-offset-2 hover:text-coral-600 hover:underline"
+          >
+            清除
+          </button>
+        )}
       </div>
 
       {list.length === 0 ? (

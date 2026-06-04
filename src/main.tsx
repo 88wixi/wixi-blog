@@ -8,6 +8,7 @@ import Articles from './pages/Articles.tsx'
 import ArticleDetail from './pages/ArticleDetail.tsx'
 import Photos from './pages/Photos.tsx'
 import PhotoCity from './pages/PhotoCity.tsx'
+import About from './pages/About.tsx'
 import NotFound from './pages/NotFound.tsx'
 
 const rootElement = document.getElementById('root')
@@ -23,6 +24,7 @@ createRoot(rootElement).render(
           <Route path="articles/:slug" element={<ArticleDetail />} />
           <Route path="photos" element={<Photos />} />
           <Route path="photos/:city" element={<PhotoCity />} />
+          <Route path="about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

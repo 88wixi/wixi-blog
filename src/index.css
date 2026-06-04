@@ -39,10 +39,20 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-paper-50);
+  background-color: var(--color-paper-50);
+  background-image:
+    radial-gradient(rgba(20, 23, 31, 0.035) 1px, transparent 1px),
+    radial-gradient(rgba(20, 23, 31, 0.02) 1px, transparent 1px);
+  background-size: 22px 22px, 11px 11px;
+  background-position: 0 0, 11px 11px;
   color: var(--color-ink-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-coral-300);
+  color: var(--color-ink-900);
 }
 
 .font-serif {
@@ -99,6 +109,40 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 一言 crossfade：老的向上淡出，新的从下方淡入 */
+@keyframes hitokoto-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes hitokoto-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+    filter: blur(2px);
+  }
+}
+
+.anim-hitokoto-in {
+  animation: hitokoto-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.anim-hitokoto-out {
+  animation: hitokoto-out 0.6s cubic-bezier(0.4, 0, 0.4, 1) both;
 }
 
 /* 进场（首屏立即播） */
@@ -180,11 +224,14 @@ body {
   .anim-fade,
   .anim-ken-burns,
   .anim-page,
+  .anim-hitokoto-in,
+  .anim-hitokoto-out,
   .reveal-item {
     animation: none !important;
     transition: none !important;
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
   }
   .dot-pulse::before {
     display: none;
