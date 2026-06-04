@@ -1,0 +1,207 @@
+import { useEffect, useState, type CSSProperties } from 'react'
+import { Link } from 'react-router-dom'
+import { articles, categoryMeta } from '../data/articles.ts'
+import { useReveal } from '../hooks/useReveal.ts'
+
+const heroImages = [
+  'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=2000&q=80',
+  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=2000&q=80',
+  'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=2000&q=80',
+  'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&w=2000&q=80',
+]
+
+const HERO_INTERVAL_MS = 7000
+
+const statusItems = [
+  { dot: 'text-coral-500', label: '正在读', value: '《纳瓦尔宝典》' },
+  { dot: 'text-sage-500', label: '本周主题', value: '减少切换成本' },
+  { dot: 'text-ink-700', label: '下一篇', value: '用 Tailwind 写内容型页面' },
+]
+
+const formatDate = (d: string) => {
+  const date = new Date(d)
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(
+    date.getDate(),
+  ).padStart(2, '0')}`
+}
+
+const delay = (ms: number): CSSProperties => ({ ['--delay' as string]: `${ms}ms` })
+
+const Home = () => {
+  const latest = [...articles].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 4)
+  const [latestRef, latestVisible] = useReveal<HTMLDivElement>()
+  const [heroIndex, setHeroIndex] = useState(0)
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = window.setInterval(
+      () => setHeroIndex((i) => (i + 1) % heroImages.length),
+      HERO_INTERVAL_MS,
+    )
+    return () => window.clearInterval(id)
+  }, [])
+
+  return (
+    <div>
+      {/* Hero */}
+      <section className="relative h-[520px] w-full overflow-hidden sm:h-[560px]">
+        <div className="absolute inset-0">
+          {heroImages.map((src, i) => (
+            <img
+              key={src}
+              src={src}
+              alt=""
+              loading={i === 0 ? 'eager' : 'lazy'}
+              className={[
+                'absolute inset-0 h-full w-full object-cover transition-opacity duration-[1500ms] ease-out',
+                i === heroIndex ? 'opacity-100 anim-ken-burns' : 'opacity-0',
+              ].join(' ')}
+            />
+          ))}
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-paper-50/95 via-paper-50/80 to-paper-50/40" />
+        <div className="relative mx-auto flex h-full w-full max-w-6xl items-center px-5 sm:px-8">
+          <div className="max-w-xl space-y-6">
+            <p
+              className="anim-fade-up text-xs font-medium tracking-[0.3em] text-coral-500 uppercase"
+              style={delay(0)}
+            >
+              forest notes · since 2026
+            </p>
+            <h1
+              className="anim-fade-up font-serif text-5xl leading-tight text-ink-900 sm:text-6xl"
+              style={delay(120)}
+            >
+              开屏即见,
+              <br />
+              一片小林子。
+            </h1>
+            <p
+              className="anim-fade-up max-w-md text-base leading-loose text-ink-700"
+              style={delay(260)}
+            >
+              一个安静但有锋利边界的个人博客,用来存放技术札记、阅读记录,以及对生活系统的观察。
+            </p>
+            <div className="anim-fade-up flex flex-wrap gap-3 pt-2" style={delay(400)}>
+              <Link
+                to="/articles"
+                className="inline-flex items-center gap-2 rounded-lg bg-coral-500 px-5 py-2.5 text-sm font-medium text-paper-50 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-coral-600 hover:shadow-md"
+              >
+                开始阅读
+                <span aria-hidden className="transition-transform group-hover:translate-x-0.5">→</span>
+              </Link>
+              <Link
+                to="/photos"
+                className="inline-flex items-center gap-2 rounded-lg border border-ink-900/10 bg-paper-50 px-5 py-2.5 text-sm font-medium text-ink-900 transition-all hover:-translate-y-0.5 hover:border-ink-900/30 hover:shadow-sm"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+                看看照片
+              </Link>
+            </div>
+          </div>
+
+          {/* Slide indicators */}
+          <div className="absolute bottom-5 right-5 z-10 flex items-center gap-1.5 sm:bottom-6 sm:right-8">
+            {heroImages.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setHeroIndex(i)}
+                aria-label={`第 ${i + 1} 张`}
+                className={[
+                  'h-1.5 rounded-full transition-all duration-500',
+                  i === heroIndex
+                    ? 'w-8 bg-ink-900/70'
+                    : 'w-3 bg-ink-900/25 hover:bg-ink-900/40',
+                ].join(' ')}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Status row */}
+      <section className="border-y border-paper-200/70 bg-paper-50">
+        <div className="mx-auto grid w-full max-w-6xl gap-4 px-5 py-5 sm:grid-cols-3 sm:px-8 sm:py-6">
+          {statusItems.map((item, i) => (
+            <div
+              key={item.label}
+              className="anim-fade-up flex items-center gap-3 text-sm"
+              style={delay(500 + i * 80)}
+            >
+              <span className={`dot-pulse inline-flex h-2 w-2 shrink-0 rounded-full ${item.dot}`}>
+                <span className="h-2 w-2 rounded-full bg-current" />
+              </span>
+              <span className="text-ink-500">{item.label}:</span>
+              <span className="truncate font-medium text-ink-900">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Latest posts */}
+      <section className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+        <div className="mb-10 flex items-end justify-between gap-6">
+          <div className="space-y-3">
+            <p className="text-xs font-medium tracking-[0.3em] text-coral-500 uppercase">
+              latest posts
+            </p>
+            <h2 className="font-serif text-4xl text-ink-900 sm:text-5xl">最近文章</h2>
+          </div>
+          <Link
+            to="/articles"
+            className="hidden shrink-0 text-sm text-ink-500 transition-colors hover:text-coral-500 sm:inline-flex"
+          >
+            全部文章 →
+          </Link>
+        </div>
+
+        <div
+          ref={latestRef}
+          className={`reveal-group grid gap-5 sm:grid-cols-2 ${latestVisible ? 'is-visible' : ''}`}
+        >
+          {latest.map((article, i) => {
+            const meta = categoryMeta[article.category]
+            return (
+              <Link
+                key={article.slug}
+                to={`/articles/${article.slug}`}
+                style={{ ['--i' as string]: i }}
+                className="reveal-item group flex flex-col gap-3 rounded-2xl border border-paper-200 bg-paper-50 p-6 transition-all hover:-translate-y-0.5 hover:border-coral-400/50 hover:shadow-md sm:p-7"
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium ${meta.badge}`}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                      <line x1="7" y1="7" x2="7.01" y2="7" />
+                    </svg>
+                    {meta.label}
+                  </span>
+                  <span className="text-xs text-ink-500">{article.readingMinutes} 分钟</span>
+                </div>
+                <h3 className="font-serif text-xl text-ink-900 transition-colors group-hover:text-coral-600 sm:text-2xl">
+                  {article.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-ink-500">{article.excerpt}</p>
+                <div className="mt-auto flex items-center justify-between pt-2 text-xs text-ink-500">
+                  <time>{formatDate(article.date)}</time>
+                  <span className="translate-x-[-4px] text-coral-500 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100">
+                    阅读 →
+                  </span>
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export default Home

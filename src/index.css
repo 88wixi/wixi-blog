@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+@theme {
+  /* paper / 背景米色 */
+  --color-paper-50: #faf7f1;
+  --color-paper-100: #f1ece0;
+  --color-paper-200: #e3dac3;
+  --color-paper-300: #cfc3a3;
+
+  /* ink / 墨色文字 */
+  --color-ink-50: #f3f4f7;
+  --color-ink-300: #b3b6c2;
+  --color-ink-500: #5b6175;
+  --color-ink-700: #2c3140;
+  --color-ink-900: #14171f;
+
+  /* coral / 珊瑚橙强调色 */
+  --color-coral-100: #fde4d8;
+  --color-coral-300: #f9b599;
+  --color-coral-400: #f2845c;
+  --color-coral-500: #ee6a3a;
+  --color-coral-600: #d65426;
+
+  /* sage / 鼠尾草绿辅色 */
+  --color-sage-100: #dfeae2;
+  --color-sage-300: #9bbaa9;
+  --color-sage-500: #4f7b6d;
+  --color-sage-700: #355649;
+
+  --font-sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper-50);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* ---------- 动效 ---------- */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ken-burns {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.12) translate(-2%, -1.5%);
+  }
+}
+
+@keyframes dot-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 进场（首屏立即播） */
+.anim-fade-up {
+  opacity: 0;
+  animation: fade-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+.anim-fade {
+  opacity: 0;
+  animation: fade-in 0.8s ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+/* Hero 背景缓慢放大 */
+.anim-ken-burns {
+  animation: ken-burns 9s ease-out both;
+}
+
+/* 状态点呼吸（halo） */
+.dot-pulse {
+  position: relative;
+}
+.dot-pulse::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.4;
+  animation: dot-pulse 2.4s ease-out infinite;
+  pointer-events: none;
+}
+
+/* 路由切换 */
+.anim-page {
+  animation: page-fade 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* 滚动入场：父级 .reveal-group 进入视口后子项依次播放 */
+.reveal-item {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+.reveal-group.is-visible .reveal-item {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Nav 下划线滑入 */
+.nav-link {
+  position: relative;
+  padding-bottom: 2px;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  height: 2px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.nav-link:hover::after,
+.nav-link.is-active::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-up,
+  .anim-fade,
+  .anim-ken-burns,
+  .anim-page,
+  .reveal-item {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .dot-pulse::before {
+    display: none;
+  }
+}
