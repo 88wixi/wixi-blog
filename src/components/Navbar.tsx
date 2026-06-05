@@ -4,6 +4,8 @@ const navItems = [
   { to: '/', label: '小记', end: true },
   { to: '/articles', label: '文章', end: false },
   { to: '/photos', label: '照片', end: false },
+  { to: '/travel', label: '行迹', end: false },
+  { to: '/gear', label: '装备', end: false },
   { to: '/about', label: '关于', end: false },
 ]
 

@@ -126,7 +126,7 @@ const Home = () => {
       </section>
 
       {/* 今日 · 报刊版面：左一言 + 右 NOW */}
-      <section className="relative overflow-hidden border-y border-paper-200/70 bg-gradient-to-br from-paper-100/40 via-paper-50 to-paper-100/30 py-14 sm:py-20">
+      <section className="relative overflow-hidden border-y border-paper-200/70 bg-gradient-to-br from-paper-100/40 via-paper-50 to-paper-100/30 py-10 sm:py-14">
         {/* 装饰背景：左上 + 右下两个超大色块虚化 */}
         <div
           aria-hidden
