@@ -15,11 +15,6 @@ dist-ssr
 # TypeScript incremental build cache
 *.tsbuildinfo
 
-# 本地照片不入库，仅保留目录占位（.gitkeep）
-src/assets/photos/**
-!src/assets/photos/**/
-!src/assets/photos/**/.gitkeep
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
