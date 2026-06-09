@@ -31,6 +31,31 @@
   --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
 }
 
+/* ---------- 暗黑模式：重定义语义色板，全站自动翻转 ---------- */
+html.dark {
+  /* paper / 背景：由米色翻成林夜深色 */
+  --color-paper-50: #15181e;
+  --color-paper-100: #1d212a;
+  --color-paper-200: #333a47;
+  --color-paper-300: #454d5e;
+
+  /* ink / 文字：由墨色翻成月白 */
+  --color-ink-50: #1b1f27;
+  --color-ink-300: #5f6675;
+  --color-ink-500: #99a0b2;
+  --color-ink-700: #c7cbd6;
+  --color-ink-900: #eceef3;
+
+  /* coral 强调色：夜里稍微提亮一点 */
+  --color-coral-400: #f59d76;
+  --color-coral-500: #f0824f;
+  --color-coral-600: #f2845c;
+
+  /* sage 辅色 */
+  --color-sage-300: #7fa593;
+  --color-sage-500: #6f9a89;
+}
+
 html,
 body,
 #root {
@@ -48,6 +73,51 @@ body {
   color: var(--color-ink-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* 暗黑下网点改为浅色，避免在深底上消失 */
+html.dark body {
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* ---------- 渐进式切换 ---------- */
+/* 主路径：View Transitions 圆形揭示，由 useTheme 用 clip-path 驱动。
+   关掉默认淡入淡出，由 JS 决定动哪一层；被裁剪的那一层必须在最上方。 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+/* 开灯（转明亮）：新的明亮层在上、从开关发散 */
+::view-transition-new(root) {
+  z-index: 9999;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+/* 关灯（转暗黑，此刻 html 已带 .dark）：旧的明亮层在上、收敛进开关 */
+html.dark::view-transition-old(root) {
+  z-index: 9999;
+}
+html.dark::view-transition-new(root) {
+  z-index: 1;
+}
+
+/* 兜底：不支持 View Transitions 时，整页色彩平滑过渡 */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition:
+    background-color 0.6s ease,
+    border-color 0.6s ease,
+    color 0.5s ease,
+    fill 0.5s ease,
+    stroke 0.5s ease,
+    box-shadow 0.6s ease !important;
+  transition-delay: 0s !important;
 }
 
 ::selection {
@@ -301,6 +371,165 @@ body {
   color: var(--color-ink-500) !important;
 }
 
+/* ---------- 开场信封：整屏四片封盖折开 ---------- */
+.env-cover {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  perspective: 1150px;
+  perspective-origin: 50% 38%;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* 网站这一层：封盖未开时缩在信封内, 折开瞬间放大升起, 像信纸被抽出 */
+#app-shell {
+  transition:
+    transform 1.8s cubic-bezier(0.18, 0.74, 0.16, 1),
+    filter 1.4s ease,
+    opacity 1s ease;
+}
+html.intro-sealed #app-shell {
+  transform: scale(0.74) translateY(10vh);
+  transform-origin: 50% 40%;
+  filter: brightness(0.94) saturate(0.96);
+  opacity: 0.86;
+}
+
+/* 四片封盖：各以一条屏幕边为轴, 合拢时铺满整屏 */
+.efold {
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-paper-100);
+  backface-visibility: hidden;
+  transition:
+    transform 2.1s cubic-bezier(0.62, 0, 0.2, 1),
+    opacity 0.7s ease 1.5s;
+}
+
+/* 折光层：制造纸片的折叠立体感 */
+.efold::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* —— 其余三片：压淡, 只作收边 —— */
+.efold-bottom,
+.efold-left,
+.efold-right {
+  background-color: var(--color-paper-100);
+}
+.efold-bottom {
+  clip-path: polygon(0 100%, 100% 100%, 50% 50%);
+  transform-origin: 50% 100%;
+}
+.efold-bottom::after {
+  background: linear-gradient(to top, rgba(20, 23, 31, 0.03), rgba(20, 23, 31, 0) 45%);
+}
+.efold-left {
+  clip-path: polygon(0 0, 0 100%, 50% 50%);
+  transform-origin: 0 50%;
+}
+.efold-left::after {
+  background: linear-gradient(to right, rgba(20, 23, 31, 0.03), rgba(20, 23, 31, 0) 45%);
+}
+.efold-right {
+  clip-path: polygon(100% 0, 100% 100%, 50% 50%);
+  transform-origin: 100% 50%;
+}
+.efold-right::after {
+  background: linear-gradient(to left, rgba(20, 23, 31, 0.03), rgba(20, 23, 31, 0) 45%);
+}
+
+/* —— 顶部主封盖：显眼但折缝柔和 —— */
+.efold-top {
+  z-index: 3;
+  clip-path: polygon(0 0, 100% 0, 50% 50%);
+  transform-origin: 50% 0;
+  /* 纸纹 + 朝折尖渐深的斜向渐变, 像受光的折面（整体调淡, 降低与三片的对比） */
+  background-color: var(--color-paper-100);
+  background-image:
+    radial-gradient(rgba(20, 23, 31, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, var(--color-paper-50) 0%, var(--color-paper-100) 55%, var(--color-paper-200) 100%);
+  background-size: 22px 22px, 100% 100%;
+  /* 柔和羽化光晕（大模糊小偏移）, 让对角折缝晕开而非锋利 */
+  filter: drop-shadow(0 2px 22px rgba(20, 23, 31, 0.14));
+}
+html.dark .efold-top {
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, var(--color-paper-100) 0%, var(--color-paper-200) 55%, var(--color-paper-300) 100%);
+}
+/* 顶边淡高光 + 折尖淡暗部, 折叠感保留但不生硬 */
+.efold-top::after {
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 26%),
+    linear-gradient(to bottom, rgba(20, 23, 31, 0) 64%, rgba(20, 23, 31, 0.08) 100%);
+}
+
+/* 折开：每片绕自身屏幕边向外翻出, 露出底下网站 */
+.env-cover.is-open .efold {
+  opacity: 0;
+}
+.env-cover.is-open .efold-top {
+  transform: rotateX(-105deg);
+}
+.env-cover.is-open .efold-bottom {
+  transform: rotateX(105deg);
+  transition-delay: 0.12s;
+}
+.env-cover.is-open .efold-left {
+  transform: rotateY(105deg);
+  transition-delay: 0.24s;
+}
+.env-cover.is-open .efold-right {
+  transform: rotateY(-105deg);
+  transition-delay: 0.36s;
+}
+
+/* 正中蜡封 */
+.env-cover-seal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  height: 60px;
+  width: 60px;
+  transform: translate(-50%, -50%);
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, var(--color-coral-400), var(--color-coral-600));
+  box-shadow:
+    0 6px 16px -4px rgba(214, 84, 38, 0.55),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.25);
+  color: var(--color-paper-50);
+  font-family: var(--font-serif);
+  font-size: 26px;
+  transition: opacity 0.4s ease, transform 0.55s cubic-bezier(0.5, 0, 0.2, 1);
+}
+.env-cover.is-open .env-cover-seal {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.4) rotate(-30deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .efold,
+  .env-cover-seal {
+    transition: opacity 0.3s ease !important;
+  }
+  .env-cover.is-open .efold {
+    transform: none;
+  }
+  html.intro-sealed #app-shell {
+    transform: none;
+    filter: none;
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .anim-fade-up,
   .anim-fade,
@@ -317,5 +546,102 @@ body {
   }
   .dot-pulse::before {
     display: none;
+  }
+}
+
+/* ---------- 右上角：灯具下垂的开关拉绳 ---------- */
+.theme-pull {
+  position: fixed;
+  top: 0;
+  right: clamp(18px, 4vw, 48px);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 14px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transform-origin: top center;
+}
+
+/* 绳子 */
+.theme-pull__cord {
+  width: 2px;
+  height: 58px;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(to bottom, var(--color-ink-300), var(--color-ink-500));
+  opacity: 0.7;
+  transition: height 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 拉手（灯泡 / 木球） */
+.theme-pull__knob {
+  position: relative;
+  width: 18px;
+  height: 22px;
+  margin-top: -1px;
+  border-radius: 9px 9px 10px 10px;
+  background: radial-gradient(circle at 35% 30%, var(--color-coral-300), var(--color-coral-500));
+  box-shadow:
+    0 0 0 2px rgba(238, 106, 58, 0.18),
+    0 0 18px 4px rgba(242, 132, 92, 0.55),
+    0 4px 10px -3px rgba(20, 23, 31, 0.3);
+  transition:
+    box-shadow 0.5s ease,
+    background 0.5s ease,
+    transform 0.2s ease;
+}
+/* 拉手顶部的小帽（灯头） */
+.theme-pull__knob::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 7px;
+  height: 5px;
+  transform: translateX(-50%);
+  border-radius: 2px 2px 0 0;
+  background: var(--color-ink-500);
+  opacity: 0.8;
+}
+
+/* 暗黑（灯灭）：拉手转暗、收起暖光 */
+html.dark .theme-pull__knob {
+  background: radial-gradient(circle at 35% 30%, var(--color-paper-300), var(--color-paper-100));
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.06),
+    0 4px 10px -3px rgba(0, 0, 0, 0.5);
+}
+
+.theme-pull:hover .theme-pull__cord {
+  height: 64px;
+}
+.theme-pull:active .theme-pull__knob {
+  transform: scale(0.92);
+}
+
+/* 拉动回弹 */
+@keyframes cord-pull {
+  0% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(12px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.theme-pull.is-pulling {
+  animation: cord-pull 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-pull__cord,
+  .theme-pull.is-pulling {
+    transition: none !important;
+    animation: none !important;
   }
 }
