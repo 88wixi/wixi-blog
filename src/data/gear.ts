@@ -32,8 +32,9 @@ export const gear: GearItem[] = [
     name: 'Z5',
     alias: '主力机',
     acquiredAt: '2024',
+    // 真机图：Nikon Z5 + Z 24-50mm（Wikimedia Commons, 摄 Henry Söderlund, CC BY 4.0）
     cover:
-      'https://images.unsplash.com/photo-1495707902641-75cac588d2e9?auto=format&fit=crop&w=1400&q=80',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Nikon_Z_5_with_Nikkor_Z_24-50mm_F4-6.3_-_by_Henry_S%C3%B6derlund_%2850328069222%29.jpg/1280px-Nikon_Z_5_with_Nikkor_Z_24-50mm_F4-6.3_-_by_Henry_S%C3%B6derlund_%2850328069222%29.jpg',
     spec: [
       { label: '类型', value: '全画幅无反' },
       { label: '传感器', value: 'CMOS · 24.3MP' },
