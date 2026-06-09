@@ -253,6 +253,21 @@ html.dark::view-transition-new(root) {
   animation: page-fade 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+/* 灯箱（点击放大）图片入场 */
+@keyframes lightbox-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.lightbox-img {
+  animation: lightbox-pop 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
 /* 滚动入场：父级 .reveal-group 进入视口后子项依次播放 */
 .reveal-item {
   opacity: 0;
