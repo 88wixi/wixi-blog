@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import '../lib/smoothWheelZoom.ts'
 import { cities, type City } from '../data/photos.ts'
 
 /** 高德地图（AutoNavi）中文路网瓦片 —— 中国 + 日本城市都显示中文 */
 const TILE_URL =
   'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
 const TILE_SUBDOMAINS = '1234'
-const TILE_ATTRIBUTION = '© 高德地图 AutoNavi'
 
 const makeIcon = (active: boolean) =>
   L.divIcon({
@@ -35,16 +35,17 @@ const Travel = () => {
 
     const map = L.map(mapRef.current, {
       zoomControl: true,
-      scrollWheelZoom: true,
+      // 关掉内置的「跳级」滚轮缩放, 交给平滑缩放 handler 逐帧缓动
+      scrollWheelZoom: false,
+      smoothWheelZoom: true,
+      smoothSensitivity: 1, // 觉得太慢/太快就调这个数
       attributionControl: false,
       doubleClickZoom: true,
       minZoom: 3,
       maxZoom: 16,
-      // 用 Leaflet 内置滚轮缩放, 步长缩小到 1/4 级让它感觉准连续, 同时瓦片能正常加载
-      zoomSnap: 0.25,
-      zoomDelta: 0.25,
-      wheelPxPerZoomLevel: 70,
-      wheelDebounceTime: 40,
+      // 允许停在任意小数缩放级, 过渡连续不跳级
+      zoomSnap: 0,
+      zoomDelta: 1,
       zoomAnimation: true,
       fadeAnimation: true,
       markerZoomAnimation: true,
@@ -56,11 +57,6 @@ const Travel = () => {
       maxZoom: 18,
       subdomains: TILE_SUBDOMAINS,
     }).addTo(map)
-
-    L.control
-      .attribution({ position: 'bottomleft', prefix: false })
-      .addAttribution(TILE_ATTRIBUTION)
-      .addTo(map)
 
     // 自动框住所有 pin
     const bounds = L.latLngBounds(cities.map((c) => c.coords))
@@ -206,12 +202,22 @@ const CityDetail = ({ city }: { city: City | undefined }) => {
     >
       {/* 顶部封面 (固定高度) */}
       <div className="relative h-44 shrink-0 overflow-hidden bg-paper-100 sm:h-52 lg:h-56">
-        <img
-          src={city.cover}
-          alt={city.name}
-          loading="lazy"
-          className="h-full w-full object-cover"
-        />
+        {city.cover ? (
+          <img
+            src={city.cover}
+            alt={city.name}
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-ink-300">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <circle cx="12" cy="12" r="3" />
+              <path d="M8 5l1.5-2h5L16 5" />
+            </svg>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-paper-50 via-paper-50/0 to-transparent" />
         <div className="absolute bottom-3 left-4 right-4 flex items-baseline gap-3">
           <h3 className="font-serif text-3xl text-ink-900 sm:text-4xl">{city.name}</h3>
