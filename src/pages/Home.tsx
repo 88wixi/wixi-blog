@@ -14,7 +14,7 @@ const heroImages = [
 const HERO_INTERVAL_MS = 7000
 
 const statusItems = [
-  { dot: 'text-coral-500', label: '正在读', value: '《纳瓦尔宝典》' },
+  { dot: 'text-coral-500', label: '正在读', value: '《明朝那些事》' },
   { dot: 'text-sage-500', label: '本周主题', value: '减少切换成本' },
   { dot: 'text-ink-700', label: '下一篇', value: '用 Tailwind 写内容型页面' },
 ]
@@ -27,6 +27,10 @@ const formatDate = (d: string) => {
 }
 
 const delay = (ms: number): CSSProperties => ({ ['--delay' as string]: `${ms}ms` })
+
+// 全角开引号/书名号（《「『【（〈“）字形偏右、左侧留白，用负缩进让首字左对齐
+const OPENING_PUNCT = /^[《「『【（〈“]/
+const optical = (v: string): CSSProperties => (OPENING_PUNCT.test(v) ? { textIndent: '-0.42em' } : {})
 
 const Home = () => {
   const latest = [...articles].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 4)
@@ -166,7 +170,10 @@ const Home = () => {
                       <div className="text-[10px] font-medium tracking-[0.25em] text-ink-500 uppercase">
                         {item.label}
                       </div>
-                      <div className="mt-1 font-serif text-base text-ink-900 sm:text-lg">
+                      <div
+                        className="mt-1 font-serif text-base text-ink-900 sm:text-lg"
+                        style={optical(item.value)}
+                      >
                         {item.value}
                       </div>
                     </div>
