@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useParams } from 'react-router-dom'
+import ZoomableImage from '../components/ZoomableImage.tsx'
 import { cities } from '../data/photos.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 
@@ -91,7 +93,7 @@ const PhotoCity = () => {
         </div>
       )}
 
-      {active && (
+      {active && createPortal(
         <div
           className="lightbox anim-fade fixed inset-0 z-[80] flex flex-col items-center justify-center bg-ink-900/90 p-4 backdrop-blur-sm sm:p-8"
           onClick={close}
@@ -137,28 +139,26 @@ const PhotoCity = () => {
             </>
           )}
 
-          {/* 图片本体：随图自身比例显示，不再套白框 */}
-          <img
-            key={active.id}
-            src={active.src}
-            alt={active.caption}
-            onClick={(e) => e.stopPropagation()}
-            className="lightbox-img max-h-[82vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
-          />
+          {/* 图片本体：可捏合/滚轮/双击放大，拖动查看细节 */}
+          <ZoomableImage key={active.id} src={active.src} alt={active.caption} />
 
           {/* 说明 + 计数 */}
           <div
-            className="mt-4 flex items-center gap-3 text-sm text-paper-50/90"
+            className="mt-4 flex flex-col items-center gap-1 text-sm text-paper-50/90"
             onClick={(e) => e.stopPropagation()}
           >
-            <span>{active.caption}</span>
-            {photos.length > 1 && (
-              <span className="text-xs text-paper-50/50">
-                {index! + 1} / {photos.length}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              <span>{active.caption}</span>
+              {photos.length > 1 && (
+                <span className="text-xs text-paper-50/50">
+                  {index! + 1} / {photos.length}
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] text-paper-50/40">双击 / 滚轮 / 双指缩放,拖动查看细节</span>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
