@@ -329,8 +329,8 @@ html.dark::view-transition-new(root) {
 }
 
 .leaflet-tooltip.travel-tooltip {
-  background: rgba(250, 247, 241, 0.95);
-  border: 1px solid rgba(227, 218, 195, 0.9);
+  background: color-mix(in srgb, var(--color-paper-50) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-paper-200) 90%, transparent);
   color: var(--color-ink-900);
   font-family: var(--font-serif);
   font-size: 12px;
@@ -339,12 +339,16 @@ html.dark::view-transition-new(root) {
   box-shadow: 0 2px 8px rgba(20, 23, 31, 0.08);
 }
 .leaflet-tooltip.travel-tooltip::before {
-  border-top-color: rgba(227, 218, 195, 0.9);
+  border-top-color: color-mix(in srgb, var(--color-paper-200) 90%, transparent);
 }
 
 .leaflet-container {
   background: var(--color-paper-100);
   font-family: var(--font-sans);
+}
+/* 暗黑模式：把高德的亮色瓦片反相成暗底, hue-rotate 把颜色转回正常 */
+html.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
 }
 .leaflet-control-attribution {
   background: rgba(250, 247, 241, 0.85) !important;
