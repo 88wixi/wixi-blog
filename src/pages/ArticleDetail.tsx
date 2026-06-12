@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { articles, categoryMeta } from '../data/articles.ts'
 
 const formatDate = (d: string) => {
@@ -90,9 +92,71 @@ const ArticleDetail = () => {
         </header>
         <hr className="my-10 border-paper-200" />
         <div className="space-y-6 font-serif text-base leading-loose text-ink-700 sm:text-lg">
-          {article.content.map((paragraph, i) => (
-            <p key={i}>{paragraph}</p>
-          ))}
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: ({ children }) => <p>{children}</p>,
+              h2: ({ children }) => (
+                <h2 className="mt-12 mb-4 font-serif text-2xl text-ink-900 sm:text-3xl">
+                  {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="mt-10 mb-3 font-serif text-xl text-ink-900 sm:text-2xl">
+                  {children}
+                </h3>
+              ),
+              ul: ({ children }) => (
+                <ul className="list-disc space-y-2 pl-6 marker:text-coral-400">{children}</ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal space-y-2 pl-6 marker:text-coral-400">{children}</ol>
+              ),
+              a: ({ href, children }) => (
+                <a
+                  href={href}
+                  target={href?.startsWith('http') ? '_blank' : undefined}
+                  rel={href?.startsWith('http') ? 'noreferrer' : undefined}
+                  className="text-coral-600 underline decoration-coral-300 underline-offset-2 hover:decoration-coral-500"
+                >
+                  {children}
+                </a>
+              ),
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-2 border-coral-300 pl-5 text-ink-500 italic">
+                  {children}
+                </blockquote>
+              ),
+              code: ({ className, children }) =>
+                className ? (
+                  <code className={className}>{children}</code>
+                ) : (
+                  <code className="rounded bg-paper-200 px-1.5 py-0.5 font-mono text-[0.85em] text-ink-700">
+                    {children}
+                  </code>
+                ),
+              pre: ({ children }) => (
+                <pre className="overflow-x-auto rounded-xl border border-paper-200 bg-ink-900/95 p-4 font-mono text-sm leading-relaxed text-paper-50">
+                  {children}
+                </pre>
+              ),
+              img: ({ src, alt }) => (
+                <figure className="my-8">
+                  <img
+                    src={typeof src === 'string' ? src : undefined}
+                    alt={alt ?? ''}
+                    loading="lazy"
+                    className="w-full rounded-2xl border border-paper-200 object-cover shadow-sm"
+                  />
+                  {alt ? (
+                    <figcaption className="mt-2 text-center text-xs text-ink-500">{alt}</figcaption>
+                  ) : null}
+                </figure>
+              ),
+            }}
+          >
+            {article.content}
+          </ReactMarkdown>
         </div>
 
         <div className="mt-12 flex flex-wrap gap-2">
