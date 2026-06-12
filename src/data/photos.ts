@@ -17,16 +17,26 @@ export type City = {
 }
 
 /**
- * 自动读取每座城市文件夹下的所有图片：src/assets/photos/<slug>/*
- * 直接把图片丢进对应文件夹即可，无需在此登记文件名。
- * 想控制顺序就给文件名加前缀，如 01-xxx.jpg、02-xxx.jpg（按文件名升序）。
+ * 一座城市的照片有两种来源，可以混用，也可只用一种：
+ *
+ * 1) 本地文件夹（自动）：把图片丢进 src/assets/photos/<slug>/ 即可被收录。
+ *    适合少量、已压缩过的图——注意这些图会进 git 仓库。
+ *
+ * 2) 外链（推荐放大量 / 高清图，例如 Cloudflare R2）：在 content/photos/<slug>.txt
+ *    里一行写一个图片地址即可，批量粘贴一串 URL 就行，不用碰这里的代码。
+ *      https://img.example.com/sz-01.jpg
+ *      https://img.example.com/sz-02.jpg | 深圳湾的傍晚   # 用 | 加自定义图说
+ *      # 以 # 开头的行、空行都会被忽略
+ *
+ * 合并顺序：本地图在前、外链在后；封面取合并后的第一张。
  */
+
+// 本地：src/assets/photos/<slug>/* —— slug -> [{ file, url }]，按文件名排序
 const modules = import.meta.glob(
   '../assets/photos/*/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP}',
   { eager: true, query: '?url', import: 'default' },
 ) as Record<string, string>
 
-// slug -> [{ file, url }]，按文件名排序
 const byCity: Record<string, { file: string; url: string }[]> = {}
 for (const [path, url] of Object.entries(modules)) {
   const m = path.match(/\/photos\/([^/]+)\/([^/]+)$/)
@@ -36,6 +46,29 @@ for (const [path, url] of Object.entries(modules)) {
 }
 for (const slug of Object.keys(byCity)) {
   byCity[slug].sort((a, b) => a.file.localeCompare(b.file, 'zh'))
+}
+
+// 外链：content/photos/<slug>.txt —— 一行一个 URL，可选 “URL | 图说”
+const remoteFiles = import.meta.glob('../../content/photos/*.txt', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>
+
+const remoteByCity: Record<string, { src: string; caption?: string }[]> = {}
+for (const [path, text] of Object.entries(remoteFiles)) {
+  const slug = path.match(/\/([^/]+)\.txt$/)?.[1]
+  if (!slug) continue
+  remoteByCity[slug] = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#'))
+    .map((line) => {
+      const i = line.indexOf('|')
+      return i === -1
+        ? { src: line }
+        : { src: line.slice(0, i).trim(), caption: line.slice(i + 1).trim() || undefined }
+    })
 }
 
 // 从文件名推断标题：去扩展名、去掉用于排序的数字前缀（01- / 02_ 等）；
@@ -50,14 +83,22 @@ const captionFrom = (file: string, cityName: string, index: number): string => {
   return base.replace(/[-_]+/g, ' ')
 }
 
-const buildPhotos = (slug: string, cityName: string): Photo[] =>
-  (byCity[slug] ?? []).map((item, i) => ({
-    id: `${slug}-${i}`,
-    caption: captionFrom(item.file, cityName, i),
-    src: item.url,
-  }))
+const buildPhotos = (slug: string, cityName: string): Photo[] => {
+  const local = (byCity[slug] ?? []).map((item) => ({ src: item.url, file: item.file }))
+  const remote = remoteByCity[slug] ?? []
+  return [...local, ...remote].map((item, i) => {
+    const custom = 'caption' in item ? item.caption : undefined
+    const file = 'file' in item ? item.file : undefined
+    return {
+      id: `${slug}-${i}`,
+      src: item.src,
+      caption:
+        custom ?? (file ? captionFrom(file, cityName, i) : `${cityName} · ${String(i + 1).padStart(2, '0')}`),
+    }
+  })
+}
 
-// 城市元数据（名字 / 地区 / 描述 / 坐标），照片由各自文件夹自动注入
+// 城市元数据（名字 / 地区 / 描述 / 坐标），照片由文件夹 + content/photos/<slug>.txt 自动注入
 const meta: Omit<City, 'photos' | 'cover'>[] = [
   { slug: 'shenzhen', name: '深圳', region: '广东', description: '现在生活的城市。地铁很长, 写字楼很高, 公园也意外地多。', coords: [22.5431, 114.0579] },
   { slug: 'guangzhou', name: '广州', region: '广东', description: '老骑楼、糖水铺、珠江晚风。', coords: [23.1291, 113.2644] },
