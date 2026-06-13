@@ -25,11 +25,8 @@ const prefersReducedMotion = () =>
 
 /**
  * 主题状态。切换时用 View Transitions API 做圆形揭示——圆心就是开关控件本身的位置
- * （由调用方传入），半径覆盖到最远的屏幕角，新主题快照从这一点扩散铺满整页。
- *
- * 无论开灯还是关灯，统一只驱动「新主题层」从开关向外扩散：旧层是过渡结束即销毁的
- * 临时快照，各浏览器（尤其 Edge/Chromium）对它的 fill / 销毁时机处理不一致，去动它
- * 会出现「圆心不在按钮上」的现象，所以只碰稳定的新层。
+ * （由调用方传入），半径覆盖到最远的屏幕角。
+ * 关灯：旧的明亮层从满屏收敛进开关；开灯：新的明亮层从开关发散铺满整页。
  * 不支持的浏览器退回到 .theme-transition 的全局色彩渐变。
  */
 export const useTheme = () => {
@@ -61,19 +58,24 @@ export const useTheme = () => {
         Math.max(x, window.innerWidth - x),
         Math.max(y, window.innerHeight - y),
       )
+      const atPoint = `circle(0px at ${x}px ${y}px)`
+      const atFull = `circle(${endRadius}px at ${x}px ${y}px)`
+      const goingDark = next === 'dark'
 
       root.animate(
         {
-          // 新主题层始终从开关处（半径 0）向外扩散，铺满整屏盖住旧层
-          clipPath: [
-            `circle(0px at ${x}px ${y}px)`,
-            `circle(${endRadius}px at ${x}px ${y}px)`,
-          ],
+          // 关灯：旧明亮层从满屏「收敛」到开关；开灯：新明亮层从开关「发散」铺满
+          clipPath: goingDark ? [atFull, atPoint] : [atPoint, atFull],
         },
         {
           duration: 500,
           easing: 'ease-in-out',
-          pseudoElement: '::view-transition-new(root)',
+          // forwards：保留终点裁剪状态，避免收敛到 0 后白层回弹满屏导致末尾闪烁
+          fill: 'forwards',
+          // 关灯动旧层（露出底下暗色），开灯动新层（盖住底下暗色）
+          pseudoElement: goingDark
+            ? '::view-transition-old(root)'
+            : '::view-transition-new(root)',
         },
       )
     },

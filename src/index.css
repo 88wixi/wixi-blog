@@ -84,16 +84,29 @@ html.dark body {
 
 /* ---------- 渐进式切换 ---------- */
 /* 主路径：View Transitions 圆形揭示，由 useTheme 用 clip-path 驱动。
-   关掉默认淡入淡出；新主题层始终压在最上方，从开关处向外扩散。 */
+   关掉默认淡入淡出，由 JS 决定动哪一层；被裁剪的那一层必须在最上方。 */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
 }
+/* 关掉 group 默认的位置/尺寸过渡：明暗主题页面高度若有微差，Edge 会插值这层的
+   transform，连带挪动里面 clip-path 的坐标系，导致圆心不在开关上。钉死即可。 */
+::view-transition-group(root) {
+  animation: none;
+}
+/* 开灯（转明亮）：新的明亮层在上、从开关发散 */
 ::view-transition-new(root) {
   z-index: 9999;
 }
 ::view-transition-old(root) {
+  z-index: 1;
+}
+/* 关灯（转暗黑，此刻 html 已带 .dark）：旧的明亮层在上、收敛进开关 */
+html.dark::view-transition-old(root) {
+  z-index: 9999;
+}
+html.dark::view-transition-new(root) {
   z-index: 1;
 }
 
