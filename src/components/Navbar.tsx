@@ -39,7 +39,8 @@ const IconButton = ({
 const Navbar = () => {
   return (
     <header className="sticky top-0 z-20 border-b border-paper-200/70 bg-paper-50/85 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+      {/* pr-20 在手机端为右上角的拉绳开关留出空位，避免遮住「关于」 */}
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 pr-20 sm:px-8">
         <Link to="/" className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink-900 text-paper-50">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
