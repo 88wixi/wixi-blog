@@ -3,11 +3,12 @@ import { createPortal } from 'react-dom'
 import { Link, useParams } from 'react-router-dom'
 import LazyImage from '../components/LazyImage.tsx'
 import ZoomableImage from '../components/ZoomableImage.tsx'
-import { cities } from '../data/photos.ts'
+import { usePhotoCities } from '../hooks/usePhotoCities.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 
 const PhotoCity = () => {
   const { city: slug } = useParams<{ city: string }>()
+  const cities = usePhotoCities()
   const city = cities.find((c) => c.slug === slug)
   const photos = city?.photos ?? []
   const [index, setIndex] = useState<number | null>(null)

@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import '../lib/smoothWheelZoom.ts'
-import { cities, type City } from '../data/photos.ts'
+import { type City } from '../data/photos.ts'
+import { usePhotoCities } from '../hooks/usePhotoCities.ts'
 
 /** 高德地图（AutoNavi）中文路网瓦片 —— 中国 + 日本城市都显示中文 */
 const TILE_URL =
@@ -19,6 +20,7 @@ const makeIcon = (active: boolean) =>
   })
 
 const Travel = () => {
+  const cities = usePhotoCities()
   const mapRef = useRef<HTMLDivElement | null>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Record<string, L.Marker>>({})
@@ -26,7 +28,7 @@ const Travel = () => {
 
   const active = useMemo(
     () => cities.find((c) => c.slug === activeSlug) ?? cities[0],
-    [activeSlug],
+    [activeSlug, cities],
   )
 
   // 初始化地图（只跑一次）
@@ -90,6 +92,8 @@ const Travel = () => {
       mapInstanceRef.current = null
       markersRef.current = {}
     }
+    // 只初始化一次：坐标与城市名来自静态 meta，R2 合并不会改它们
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 切换激活态时刷新 pin 样式

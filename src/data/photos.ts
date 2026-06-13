@@ -95,10 +95,19 @@ const captionFrom = (file: string, cityName: string, index: number): string => {
   return base.replace(/[-_]+/g, ' ')
 }
 
-const buildPhotos = (slug: string, cityName: string): Photo[] => {
+const buildPhotos = (slug: string, cityName: string, r2Files: string[] = []): Photo[] => {
   const local = (byCity[slug] ?? []).map((item) => ({ src: item.url, file: item.file }))
   const remote = remoteByCity[slug] ?? []
-  return [...local, ...remote].map((item, i) => {
+  // R2 自动清单：只有文件名，按 R2_BASE/<slug>/文件名 拼地址，文件名兜底图说
+  const r2 = r2Files.map((file) => ({ src: resolveSrc(file, slug), file }))
+
+  // 合并去重：本地 → txt → R2 自动清单。同一 src 只保留第一份（txt 的自定义图说优先）
+  const seen = new Set<string>()
+  const merged = [...local, ...remote, ...r2].filter(
+    (item) => !seen.has(item.src) && seen.add(item.src),
+  )
+
+  return merged.map((item, i) => {
     const custom = 'caption' in item ? item.caption : undefined
     const file = 'file' in item ? item.file : undefined
     return {
@@ -129,7 +138,32 @@ const meta: Omit<City, 'photos' | 'cover'>[] = [
   { slug: 'osaka', name: '大阪', region: '日本', description: '通天阁下的小吃街, 道顿堀的霓虹永远在亮。', coords: [34.6937, 135.5023] },
 ]
 
-export const cities: City[] = meta.map((c) => {
-  const photos = buildPhotos(c.slug, c.name)
-  return { ...c, photos, cover: photos[0]?.src }
-})
+/** R2 自动清单：slug -> 文件名数组（由 Worker 返回）。传入后并入对应城市的照片。 */
+export type R2Manifest = Record<string, string[]>
+
+export const buildCities = (r2: R2Manifest = {}): City[] =>
+  meta.map((c) => {
+    const photos = buildPhotos(c.slug, c.name, r2[c.slug] ?? [])
+    return { ...c, photos, cover: photos[0]?.src }
+  })
+
+// 静态城市：只含本地图 + txt 外链，作为首屏 / Worker 未配置时的兜底
+export const cities: City[] = buildCities()
+
+/**
+ * 列图接口地址：部署好 worker/ 里的 Worker 后，把它的 URL 填到这里
+ * （或在构建时用 VITE_PHOTOS_API 注入）。留空则只用本地 + txt，不发请求。
+ */
+export const PHOTOS_API: string = import.meta.env.VITE_PHOTOS_API ?? ''
+
+/** 运行时拉取 R2 清单；失败 / 未配置都返回 null，调用方退回静态数据。 */
+export const fetchManifest = async (): Promise<R2Manifest | null> => {
+  if (!PHOTOS_API) return null
+  try {
+    const res = await fetch(PHOTOS_API, { headers: { Accept: 'application/json' } })
+    if (!res.ok) return null
+    return (await res.json()) as R2Manifest
+  } catch {
+    return null
+  }
+}

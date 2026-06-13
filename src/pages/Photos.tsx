@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
-import { cities } from '../data/photos.ts'
+import { usePhotoCities } from '../hooks/usePhotoCities.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 
 const Photos = () => {
+  const cities = usePhotoCities()
   const [gridRef, visible] = useReveal<HTMLDivElement>()
 
   return (

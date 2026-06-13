@@ -1,0 +1,9 @@
+name = "wixi-photos"
+main = "index.js"
+compatibility_date = "2024-09-01"
+
+# 把 bucket_name 换成你 R2 里的 bucket 名（Cloudflare 控制台 → R2 列表里能看到）。
+# binding 名必须是 BUCKET，跟 index.js 里的 env.BUCKET 对应。
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "REPLACE_WITH_YOUR_BUCKET_NAME"
