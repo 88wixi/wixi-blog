@@ -23,13 +23,24 @@ export type City = {
  *    适合少量、已压缩过的图——注意这些图会进 git 仓库。
  *
  * 2) 外链（推荐放大量 / 高清图，例如 Cloudflare R2）：在 content/photos/<slug>.txt
- *    里一行写一个图片地址即可，批量粘贴一串 URL 就行，不用碰这里的代码。
- *      https://img.example.com/sz-01.jpg
- *      https://img.example.com/sz-02.jpg | 深圳湾的傍晚   # 用 | 加自定义图说
+ *    里一行写一个图片，批量粘贴即可，不用碰这里的代码。每行可以是：
+ *      IMG_2605.jpeg                 # 只写文件名 → 自动拼成 R2_BASE/<slug>/文件名
+ *      IMG_2606.jpeg | 中山陵的台阶   # 用 | 加自定义图说
+ *      /other/banner.jpg             # 以 / 开头 → 拼到 R2_BASE 根下
+ *      https://另一图床.com/x.jpg     # 完整 http(s) 链接 → 原样使用
  *      # 以 # 开头的行、空行都会被忽略
  *
  * 合并顺序：本地图在前、外链在后；封面取合并后的第一张。
  */
+
+// Cloudflare R2 自定义域：txt 里只写文件名时，按 R2_BASE/<slug>/文件名 拼出完整地址
+const R2_BASE = 'https://img.wixi88.xyz'
+const resolveSrc = (raw: string, slug: string): string =>
+  /^https?:\/\//i.test(raw)
+    ? raw
+    : raw.startsWith('/')
+      ? `${R2_BASE}${raw}`
+      : `${R2_BASE}/${slug}/${raw}`
 
 // 本地：src/assets/photos/<slug>/* —— slug -> [{ file, url }]，按文件名排序
 const modules = import.meta.glob(
@@ -55,7 +66,7 @@ const remoteFiles = import.meta.glob('../../content/photos/*.txt', {
   import: 'default',
 }) as Record<string, string>
 
-const remoteByCity: Record<string, { src: string; caption?: string }[]> = {}
+const remoteByCity: Record<string, { src: string; caption?: string; file?: string }[]> = {}
 for (const [path, text] of Object.entries(remoteFiles)) {
   const slug = path.match(/\/([^/]+)\.txt$/)?.[1]
   if (!slug) continue
@@ -65,9 +76,10 @@ for (const [path, text] of Object.entries(remoteFiles)) {
     .filter((line) => line && !line.startsWith('#'))
     .map((line) => {
       const i = line.indexOf('|')
-      return i === -1
-        ? { src: line }
-        : { src: line.slice(0, i).trim(), caption: line.slice(i + 1).trim() || undefined }
+      const raw = (i === -1 ? line : line.slice(0, i)).trim()
+      const caption = i === -1 ? undefined : line.slice(i + 1).trim() || undefined
+      // file 取地址最后一段，供没写图说时从文件名推断标题
+      return { src: resolveSrc(raw, slug), caption, file: raw.split('/').pop() || undefined }
     })
 }
 
