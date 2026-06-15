@@ -4,7 +4,7 @@ import { usePhotoCities } from '../hooks/usePhotoCities.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 
 const Photos = () => {
-  const cities = usePhotoCities()
+  const { cities, ready } = usePhotoCities()
   const [gridRef, visible] = useReveal<HTMLDivElement>()
 
   return (
@@ -42,6 +42,9 @@ const Photos = () => {
                   }}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
+              ) : !ready ? (
+                // 清单还没回来：用骨架闪一下，避免「整理中」假内容再跳成图片
+                <div className="h-full w-full animate-pulse bg-paper-200/70" />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-paper-100 text-ink-300">
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -53,9 +56,11 @@ const Photos = () => {
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-ink-900/60 via-transparent to-transparent" />
-              <span className="absolute right-3 top-3 rounded-md bg-paper-50/90 px-2 py-1 text-[11px] font-medium text-ink-900 backdrop-blur">
-                {city.photos.length} 张
-              </span>
+              {ready && (
+                <span className="absolute right-3 top-3 rounded-md bg-paper-50/90 px-2 py-1 text-[11px] font-medium text-ink-900 backdrop-blur">
+                  {city.photos.length} 张
+                </span>
+              )}
               <div className="absolute bottom-3 left-4 right-4 flex items-baseline justify-between text-paper-50">
                 <span className="font-serif text-2xl">{city.name}</span>
                 <span className="text-xs opacity-80">{city.region}</span>

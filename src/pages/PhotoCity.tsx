@@ -9,7 +9,7 @@ import { useReveal } from '../hooks/useReveal.ts'
 
 const PhotoCity = () => {
   const { city: slug } = useParams<{ city: string }>()
-  const cities = usePhotoCities()
+  const { cities, ready } = usePhotoCities()
   const city = cities.find((c) => c.slug === slug)
   const photos = city?.photos ?? []
   const [index, setIndex] = useState<number | null>(null)
@@ -68,7 +68,18 @@ const PhotoCity = () => {
         <p className="max-w-2xl text-sm text-ink-500">{city.description}</p>
       </header>
 
-      {photos.length === 0 ? (
+      {photos.length === 0 && !ready ? (
+        // 清单还没回来：骨架占位，避免「整理中」一闪再跳出照片
+        <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="mb-4 animate-pulse rounded-xl bg-paper-200/70"
+              style={{ height: `${180 + (i % 3) * 60}px` }}
+            />
+          ))}
+        </div>
+      ) : photos.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-paper-200 bg-paper-100/40 py-20 text-center text-ink-300">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="5" width="18" height="14" rx="2" />

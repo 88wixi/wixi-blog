@@ -20,7 +20,7 @@ const makeIcon = (active: boolean) =>
   })
 
 const Travel = () => {
-  const cities = usePhotoCities()
+  const { cities } = usePhotoCities()
   const mapRef = useRef<HTMLDivElement | null>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Record<string, L.Marker>>({})
