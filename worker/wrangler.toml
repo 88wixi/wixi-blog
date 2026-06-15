@@ -6,4 +6,4 @@ compatibility_date = "2024-09-01"
 # binding 名必须是 BUCKET，跟 index.js 里的 env.BUCKET 对应。
 [[r2_buckets]]
 binding = "BUCKET"
-bucket_name = "REPLACE_WITH_YOUR_BUCKET_NAME"
+bucket_name = "wixi-blog"
