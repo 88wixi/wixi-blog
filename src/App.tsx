@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar.tsx'
 import Footer from './components/Footer.tsx'
@@ -6,6 +7,13 @@ import ThemePull from './components/ThemePull.tsx'
 
 const App = () => {
   const location = useLocation()
+
+  // 路由切换后回到页面顶部：React Router 默认保留上一页的滚动位置，
+  // 不复位的话点进新页面会停在上次滚动到的地方（看着像「一打开不在顶部」）。
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
+
   return (
     <>
       <LetterIntro />
