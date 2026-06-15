@@ -90,10 +90,10 @@ export const buildCities = (r2: R2Manifest = {}): City[] =>
 export const cities: City[] = buildCities()
 
 /**
- * 列图接口地址：部署好 worker/ 里的 Worker 后，把它的 URL 填到 VITE_PHOTOS_API。
- * 留空则没有照片（不发请求）。
+ * 列图接口地址：默认用 photos.wixi88.xyz（Worker 自定义域，国内外都可访问，公开地址非密钥）。
+ * 想换地址可用 VITE_PHOTOS_API 覆盖；workers.dev 在国内被墙，别用它当默认。
  */
-export const PHOTOS_API: string = import.meta.env.VITE_PHOTOS_API ?? ''
+export const PHOTOS_API: string = import.meta.env.VITE_PHOTOS_API || 'https://photos.wixi88.xyz'
 
 /** 运行时拉取 R2 清单；失败 / 未配置都返回 null，调用方退回静态数据。 */
 export const fetchManifest = async (): Promise<R2Manifest | null> => {

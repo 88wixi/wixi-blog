@@ -1,9 +1,16 @@
 name = "wixi-photos"
 main = "index.js"
 compatibility_date = "2024-09-01"
+workers_dev = true # 保留 workers.dev 地址（国外可用）；国内走下面的自定义域
 
 # 把 bucket_name 换成你 R2 里的 bucket 名（Cloudflare 控制台 → R2 列表里能看到）。
 # binding 名必须是 BUCKET，跟 index.js 里的 env.BUCKET 对应。
+# 自定义域名：workers.dev 在国内被墙，绑到 wixi88.xyz 下的子域（与图片同域，国内可访问）。
+# wrangler deploy 会自动在该 zone 建好 DNS 记录与证书。
+[[routes]]
+pattern = "photos.wixi88.xyz"
+custom_domain = true
+
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "wixi-blog"
