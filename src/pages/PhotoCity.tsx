@@ -142,8 +142,14 @@ const PhotoCity = () => {
             </>
           )}
 
-          {/* 图片本体：可捏合/滚轮/双击放大，拖动查看细节 */}
-          <ZoomableImage key={active.id} src={active.src} alt={active.caption} />
+          {/* 图片本体：可捏合/滚轮/双击放大，拖动查看细节。
+              placeholder 用列表里已缓存的缩略图，点开即时垫底，原图加载完淡入 */}
+          <ZoomableImage
+            key={active.id}
+            src={active.src}
+            placeholder={thumb(active.src, 800)}
+            alt={active.caption}
+          />
 
           {/* 说明 + 计数 */}
           <div

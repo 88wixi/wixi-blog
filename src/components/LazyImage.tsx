@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type Props = {
   src: string
@@ -13,29 +13,58 @@ type Props = {
   fallbackSrc?: string
 }
 
-/** 懒加载图片：滚动到附近才请求，未加载时占位撑高，加载完淡入；失败可回退原图。 */
+/**
+ * 懒加载图片：用 IntersectionObserver 监听，离视口还有一段距离时才挂载 <img> 发起请求，
+ * 未加载时按宽高比占位撑高、加载完淡入；失败可回退原图。
+ * 相比原生 loading="lazy"，在 masonry(columns) 布局下更可靠——不会一次性把整列图片塞进 DOM。
+ */
 const LazyImage = ({ src, alt, className, ratio = 0.78, fallbackSrc }: Props) => {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const triedFallback = useRef(false)
 
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el || inView) return
+    // 不支持 IO 的老浏览器直接加载
+    if (typeof IntersectionObserver === 'undefined') {
+      setInView(true)
+      return
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setInView(true)
+          io.disconnect()
+        }
+      },
+      { rootMargin: '400px 0px' }, // 提前 400px 预加载，滚动时基本无缝
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [inView])
+
   return (
     <div
+      ref={wrapRef}
       className="w-full overflow-hidden bg-paper-100"
       style={loaded ? undefined : { aspectRatio: String(ratio) }}
     >
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setLoaded(true)}
-        onError={(e) => {
-          if (!fallbackSrc || triedFallback.current) return
-          triedFallback.current = true
-          e.currentTarget.src = fallbackSrc
-        }}
-        className={`block w-full transition-opacity duration-700 ${loaded ? 'opacity-100' : 'opacity-0'} ${className ?? ''}`}
-      />
+      {inView && (
+        <img
+          src={src}
+          alt={alt}
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          onError={(e) => {
+            if (!fallbackSrc || triedFallback.current) return
+            triedFallback.current = true
+            e.currentTarget.src = fallbackSrc
+          }}
+          className={`block w-full transition-opacity duration-700 ${loaded ? 'opacity-100' : 'opacity-0'} ${className ?? ''}`}
+        />
+      )}
     </div>
   )
 }

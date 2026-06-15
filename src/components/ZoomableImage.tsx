@@ -13,8 +13,18 @@ const mid = (a: Pt, b: Pt): Pt => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })
  * - 触屏：双指捏合缩放、单指拖动、双击放大/还原
  * - 桌面：滚轮缩放、拖动、双击放大/还原
  * 以指针/光标位置为中心缩放，缩放后限制在图片范围内拖动。
+ * 传入 placeholder（列表里已缓存的缩略图）时，点开即时显示模糊小图垫底，
+ * 原图在上面加载完再淡入，期间显示转圈——避免「点了一片黑等半天」。
  */
-const ZoomableImage = ({ src, alt }: { src: string; alt: string }) => {
+const ZoomableImage = ({
+  src,
+  alt,
+  placeholder,
+}: {
+  src: string
+  alt: string
+  placeholder?: string
+}) => {
   const wrapRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const view = useRef({ scale: 1, tx: 0, ty: 0 })
@@ -23,6 +33,12 @@ const ZoomableImage = ({ src, alt }: { src: string; alt: string }) => {
   const lastPan = useRef<Pt | null>(null)
   const lastTap = useRef(0)
   const [zoomed, setZoomed] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  // 切换图片时重置加载态
+  useEffect(() => {
+    setLoaded(false)
+  }, [src])
 
   const apply = useCallback(() => {
     const { scale, tx, ty } = view.current
@@ -165,15 +181,34 @@ const ZoomableImage = ({ src, alt }: { src: string; alt: string }) => {
       onDoubleClick={(e) =>
         zoomAround({ x: e.clientX, y: e.clientY }, view.current.scale > 1 ? 1 : 2.5)
       }
-      className="lightbox-pop flex max-h-[86vh] max-w-[94vw] touch-none items-center justify-center overflow-hidden"
+      className="lightbox-pop relative flex max-h-[86vh] max-w-[94vw] touch-none items-center justify-center overflow-hidden"
     >
+      {/* 缩略图垫底：点开即时显示（已缓存），原图加载完后被盖住 */}
+      {placeholder && !loaded && (
+        <img
+          src={placeholder}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="max-h-[86vh] max-w-[94vw] select-none rounded-lg object-contain shadow-2xl blur-[1px]"
+        />
+      )}
+      {/* 加载中转圈 */}
+      {!loaded && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="h-8 w-8 animate-spin rounded-full border-2 border-paper-50/30 border-t-paper-50" />
+        </div>
+      )}
       <img
         ref={imgRef}
         key={src}
         src={src}
         alt={alt}
         draggable={false}
-        className="max-h-[86vh] max-w-[94vw] origin-center select-none rounded-lg object-contain shadow-2xl will-change-transform"
+        onLoad={() => setLoaded(true)}
+        className={`max-h-[86vh] max-w-[94vw] origin-center select-none rounded-lg object-contain shadow-2xl transition-opacity duration-500 will-change-transform ${
+          loaded ? 'opacity-100' : 'absolute opacity-0'
+        }`}
         style={{ cursor: zoomed ? 'grab' : 'zoom-in' }}
       />
     </div>
