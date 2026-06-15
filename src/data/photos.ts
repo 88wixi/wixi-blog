@@ -11,76 +11,32 @@ export type City = {
   description: string
   /** 用于旅行地图的经纬度 [lat, lng] */
   coords: [number, number]
-  /** 封面：取该城文件夹里的第一张；没有图片时为 undefined（页面显示占位） */
+  /** 封面：取该城的第一张；没有图片时为 undefined（页面显示占位） */
   cover?: string
   photos: Photo[]
 }
 
 /**
- * 一座城市的照片有两种来源，可以混用，也可只用一种：
- *
- * 1) 本地文件夹（自动）：把图片丢进 src/assets/photos/<slug>/ 即可被收录。
- *    适合少量、已压缩过的图——注意这些图会进 git 仓库。
- *
- * 2) 外链（推荐放大量 / 高清图，例如 Cloudflare R2）：在 content/photos/<slug>.txt
- *    里一行写一个图片，批量粘贴即可，不用碰这里的代码。每行可以是：
- *      IMG_2605.jpeg                 # 只写文件名 → 自动拼成 R2_BASE/<slug>/文件名
- *      IMG_2606.jpeg | 中山陵的台阶   # 用 | 加自定义图说
- *      /other/banner.jpg             # 以 / 开头 → 拼到 R2_BASE 根下
- *      https://另一图床.com/x.jpg     # 完整 http(s) 链接 → 原样使用
- *      # 以 # 开头的行、空行都会被忽略
- *
- * 合并顺序：本地图在前、外链在后；封面取合并后的第一张。
+ * 照片全部来自 Cloudflare R2：按「城市文件夹/文件名」上传到 bucket，
+ * Worker（VITE_PHOTOS_API）运行时列出清单，前端按下面的地址加载。
+ * 往 R2 加图即时生效，不用改代码、不用重新部署网站。
  */
 
-// Cloudflare R2 自定义域：txt 里只写文件名时，按 R2_BASE/<slug>/文件名 拼出完整地址
+// Cloudflare R2 自定义域：原图按 R2_BASE/<slug>/<文件名> 提供
 const R2_BASE = 'https://img.wixi88.xyz'
-const resolveSrc = (raw: string, slug: string): string =>
-  /^https?:\/\//i.test(raw)
-    ? raw
-    : raw.startsWith('/')
-      ? `${R2_BASE}${raw}`
-      : `${R2_BASE}/${slug}/${raw}`
 
-// 本地：src/assets/photos/<slug>/* —— slug -> [{ file, url }]，按文件名排序
-const modules = import.meta.glob(
-  '../assets/photos/*/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP}',
-  { eager: true, query: '?url', import: 'default' },
-) as Record<string, string>
+const originalSrc = (slug: string, file: string): string => `${R2_BASE}/${slug}/${file}`
 
-const byCity: Record<string, { file: string; url: string }[]> = {}
-for (const [path, url] of Object.entries(modules)) {
-  const m = path.match(/\/photos\/([^/]+)\/([^/]+)$/)
-  if (!m) continue
-  const [, slug, file] = m
-  ;(byCity[slug] ??= []).push({ file, url })
-}
-for (const slug of Object.keys(byCity)) {
-  byCity[slug].sort((a, b) => a.file.localeCompare(b.file, 'zh'))
-}
-
-// 外链：content/photos/<slug>.txt —— 一行一个 URL，可选 “URL | 图说”
-const remoteFiles = import.meta.glob('../../content/photos/*.txt', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>
-
-const remoteByCity: Record<string, { src: string; caption?: string; file?: string }[]> = {}
-for (const [path, text] of Object.entries(remoteFiles)) {
-  const slug = path.match(/\/([^/]+)\.txt$/)?.[1]
-  if (!slug) continue
-  remoteByCity[slug] = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'))
-    .map((line) => {
-      const i = line.indexOf('|')
-      const raw = (i === -1 ? line : line.slice(0, i)).trim()
-      const caption = i === -1 ? undefined : line.slice(i + 1).trim() || undefined
-      // file 取地址最后一段，供没写图说时从文件名推断标题
-      return { src: resolveSrc(raw, slug), caption, file: raw.split('/').pop() || undefined }
-    })
+/**
+ * 缩略图地址：走 Cloudflare 图片变换（cdn-cgi/image），把几 MB 原图现切成几十 KB 小图，
+ * 列表/相册用它，原图只在灯箱里加载。
+ * 需要在 Cloudflare 控制台给 wixi88.xyz 开启 Transformations；未开启时前端 onError 会
+ * 回退到原图，不会坏图。传入完整 R2 原图 URL，返回对应宽度的缩略图 URL；非 R2 链接原样返回。
+ */
+export const thumb = (src: string, width = 600): string => {
+  const prefix = `${R2_BASE}/`
+  if (!src.startsWith(prefix) || src.includes('/cdn-cgi/')) return src
+  return `${R2_BASE}/cdn-cgi/image/width=${width},quality=78,format=auto/${src.slice(prefix.length)}`
 }
 
 // 从文件名推断标题：去扩展名、去掉用于排序的数字前缀（01- / 02_ 等）；
@@ -95,31 +51,14 @@ const captionFrom = (file: string, cityName: string, index: number): string => {
   return base.replace(/[-_]+/g, ' ')
 }
 
-const buildPhotos = (slug: string, cityName: string, r2Files: string[] = []): Photo[] => {
-  const local = (byCity[slug] ?? []).map((item) => ({ src: item.url, file: item.file }))
-  const remote = remoteByCity[slug] ?? []
-  // R2 自动清单：只有文件名，按 R2_BASE/<slug>/文件名 拼地址，文件名兜底图说
-  const r2 = r2Files.map((file) => ({ src: resolveSrc(file, slug), file }))
+const buildPhotos = (slug: string, cityName: string, files: string[] = []): Photo[] =>
+  files.map((file, i) => ({
+    id: `${slug}-${i}`,
+    src: originalSrc(slug, file),
+    caption: captionFrom(file, cityName, i),
+  }))
 
-  // 合并去重：本地 → txt → R2 自动清单。同一 src 只保留第一份（txt 的自定义图说优先）
-  const seen = new Set<string>()
-  const merged = [...local, ...remote, ...r2].filter(
-    (item) => !seen.has(item.src) && seen.add(item.src),
-  )
-
-  return merged.map((item, i) => {
-    const custom = 'caption' in item ? item.caption : undefined
-    const file = 'file' in item ? item.file : undefined
-    return {
-      id: `${slug}-${i}`,
-      src: item.src,
-      caption:
-        custom ?? (file ? captionFrom(file, cityName, i) : `${cityName} · ${String(i + 1).padStart(2, '0')}`),
-    }
-  })
-}
-
-// 城市元数据（名字 / 地区 / 描述 / 坐标），照片由文件夹 + content/photos/<slug>.txt 自动注入
+// 城市元数据（名字 / 地区 / 描述 / 坐标），照片由 R2 清单运行时注入
 const meta: Omit<City, 'photos' | 'cover'>[] = [
   { slug: 'shenzhen', name: '深圳', region: '广东', description: '现在生活的城市。地铁很长, 写字楼很高, 公园也意外地多。', coords: [22.5431, 114.0579] },
   { slug: 'guangzhou', name: '广州', region: '广东', description: '老骑楼、糖水铺、珠江晚风。', coords: [23.1291, 113.2644] },
@@ -147,12 +86,12 @@ export const buildCities = (r2: R2Manifest = {}): City[] =>
     return { ...c, photos, cover: photos[0]?.src }
   })
 
-// 静态城市：只含本地图 + txt 外链，作为首屏 / Worker 未配置时的兜底
+// 静态城市：仅含元数据、照片为空，作为首屏 / Worker 未就绪时的占位；R2 清单到达后替换
 export const cities: City[] = buildCities()
 
 /**
- * 列图接口地址：部署好 worker/ 里的 Worker 后，把它的 URL 填到这里
- * （或在构建时用 VITE_PHOTOS_API 注入）。留空则只用本地 + txt，不发请求。
+ * 列图接口地址：部署好 worker/ 里的 Worker 后，把它的 URL 填到 VITE_PHOTOS_API。
+ * 留空则没有照片（不发请求）。
  */
 export const PHOTOS_API: string = import.meta.env.VITE_PHOTOS_API ?? ''
 

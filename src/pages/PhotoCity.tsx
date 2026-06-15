@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link, useParams } from 'react-router-dom'
 import LazyImage from '../components/LazyImage.tsx'
 import ZoomableImage from '../components/ZoomableImage.tsx'
+import { thumb } from '../data/photos.ts'
 import { usePhotoCities } from '../hooks/usePhotoCities.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 
@@ -86,7 +87,7 @@ const PhotoCity = () => {
               style={{ ['--i' as string]: i }}
               className="reveal-item mb-4 block w-full overflow-hidden rounded-xl border border-paper-200 bg-paper-50 text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
             >
-              <LazyImage src={photo.src} alt={photo.caption} />
+              <LazyImage src={thumb(photo.src, 800)} fallbackSrc={photo.src} alt={photo.caption} />
               <div className="flex items-center justify-between px-3 py-2 text-xs">
                 <span className="text-ink-700">{photo.caption}</span>
               </div>

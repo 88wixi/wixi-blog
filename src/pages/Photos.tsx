@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { thumb } from '../data/photos.ts'
 import { usePhotoCities } from '../hooks/usePhotoCities.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 
@@ -32,10 +33,13 @@ const Photos = () => {
             <div className="relative aspect-[4/3] overflow-hidden">
               {city.cover ? (
                 <img
-                  src={city.cover}
+                  src={thumb(city.cover, 600)}
                   alt={city.name}
                   loading="lazy"
                   decoding="async"
+                  onError={(e) => {
+                    if (e.currentTarget.src !== city.cover) e.currentTarget.src = city.cover!
+                  }}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               ) : (

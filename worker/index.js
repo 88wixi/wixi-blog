@@ -1,6 +1,6 @@
 // Cloudflare Worker：列出 R2 bucket 里的图片，按「顶层文件夹(=城市 slug)」分组返回 JSON。
 // 部署后把它的地址填给前端的 VITE_PHOTOS_API；之后往 R2 上传新图即时生效，
-// 不用再改 content/photos/*.txt，也不用重新部署网站。
+// 不用再改代码、也不用重新部署网站。
 //
 // 返回示例： { "nanjing": ["IMG_2605.jpeg", ...], "osaka": ["IMG_0852.jpg", ...] }
 

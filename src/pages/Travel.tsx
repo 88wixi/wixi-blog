@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import '../lib/smoothWheelZoom.ts'
-import { type City } from '../data/photos.ts'
+import { thumb, type City } from '../data/photos.ts'
 import { usePhotoCities } from '../hooks/usePhotoCities.ts'
 
 /** 高德地图（AutoNavi）中文路网瓦片 —— 中国 + 日本城市都显示中文 */
@@ -208,9 +208,12 @@ const CityDetail = ({ city }: { city: City | undefined }) => {
       <div className="relative h-44 shrink-0 overflow-hidden bg-paper-100 sm:h-52 lg:h-56">
         {city.cover ? (
           <img
-            src={city.cover}
+            src={thumb(city.cover, 600)}
             alt={city.name}
             loading="lazy"
+            onError={(e) => {
+              if (e.currentTarget.src !== city.cover) e.currentTarget.src = city.cover!
+            }}
             className="h-full w-full object-cover"
           />
         ) : (
@@ -253,9 +256,12 @@ const CityDetail = ({ city }: { city: City | undefined }) => {
                 title={p.caption}
               >
                 <img
-                  src={p.src}
+                  src={thumb(p.src, 320)}
                   alt={p.caption}
                   loading="lazy"
+                  onError={(e) => {
+                    if (e.currentTarget.src !== p.src) e.currentTarget.src = p.src
+                  }}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-ink-900/0 transition-colors group-hover:bg-ink-900/15" />
