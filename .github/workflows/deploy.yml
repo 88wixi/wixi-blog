@@ -34,12 +34,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # GitHub Pages 是子路径站点（/wixi-blog/），用 VITE_BASE 注入。
+      # 列图接口地址用代码里的默认值 photos.wixi88.xyz（自定义域，国内外都可访问）。
+      # 不再注入 VITE_PHOTOS_API，避免旧的 workers.dev 仓库变量覆盖默认值（workers.dev 在国内被墙）。
       - run: pnpm build
         env:
           VITE_BASE: /wixi-blog/
-          # 列图 Worker 地址，在仓库 Settings → Variables 里设 VITE_PHOTOS_API；
-          # 未设置则为空，网站自动退回本地图 + content/photos/*.txt
-          VITE_PHOTOS_API: ${{ vars.VITE_PHOTOS_API }}
 
       # SPA 深链兜底：未知路径回退到 index.html，由前端路由接管。
       - run: cp dist/index.html dist/404.html
