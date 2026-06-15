@@ -55,8 +55,11 @@ const PhotoCity = () => {
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-14 sm:px-8 sm:py-20">
       <header className="mb-10 space-y-3">
-        <Link to="/photos" className="text-xs text-ink-500 hover:text-coral-500">
-          ← 所有城市
+        <Link
+          to="/photos"
+          className="relative z-10 -ml-2 inline-flex w-fit items-center gap-1 rounded-md px-2 py-1.5 text-sm text-ink-500 transition-colors hover:text-coral-500"
+        >
+          <span aria-hidden>←</span> 所有城市
         </Link>
         <div className="flex items-baseline gap-3">
           <h1 className="font-serif text-4xl text-ink-900 sm:text-5xl">{city.name}</h1>
