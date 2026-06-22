@@ -75,6 +75,7 @@ const meta: Omit<City, 'photos' | 'cover'>[] = [
   { slug: 'chongqing', name: '重庆', region: '直辖市', description: '8D 魔幻立体, 桥上一层桥下一层, 江风带着火锅味。', coords: [29.563, 106.5516] },
   { slug: 'guilin', name: '桂林', region: '广西', description: '漓江的水是绿的, 山是站着的水墨。', coords: [25.2736, 110.29] },
   { slug: 'osaka', name: '大阪', region: '日本', description: '通天阁下的小吃街, 道顿堀的霓虹永远在亮。', coords: [34.6937, 135.5023] },
+  { slug: 'bangkok', name: '曼谷', region: '泰国', description: '金色寺庙与湄南河, 夜市的喧嚣和热带的暖风。', coords: [13.7563, 100.5018] },
 ]
 
 /** R2 自动清单：slug -> 文件名数组（由 Worker 返回）。传入后并入对应城市的照片。 */
