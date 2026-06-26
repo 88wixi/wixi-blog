@@ -4,6 +4,7 @@ import Navbar from './components/Navbar.tsx'
 import Footer from './components/Footer.tsx'
 import LetterIntro from './components/LetterIntro.tsx'
 import ThemePull from './components/ThemePull.tsx'
+import BackToTop from './components/BackToTop.tsx'
 
 const App = () => {
   const location = useLocation()
@@ -27,6 +28,7 @@ const App = () => {
         </main>
         <Footer />
       </div>
+      <BackToTop />
     </>
   )
 }
