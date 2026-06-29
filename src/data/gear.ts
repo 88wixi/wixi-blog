@@ -33,8 +33,8 @@ export const gear: GearItem[] = [
     alias: '主力机',
     acquiredAt: '2024',
     // 真机图：Nikon Z5 + Z 24-50mm（Wikimedia Commons, 摄 Henry Söderlund, CC BY 4.0）
-    cover:
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Nikon_Z_5_with_Nikkor_Z_24-50mm_F4-6.3_-_by_Henry_S%C3%B6derlund_%2850328069222%29.jpg/1280px-Nikon_Z_5_with_Nikkor_Z_24-50mm_F4-6.3_-_by_Henry_S%C3%B6derlund_%2850328069222%29.jpg',
+    // 已下载到本地 public/gear/，避免外链失效
+    cover: '/gear/nikon-z5.jpg',
     spec: [
       { label: '类型', value: '全画幅无反' },
       { label: '传感器', value: 'CMOS · 24.3MP' },
@@ -53,8 +53,8 @@ export const gear: GearItem[] = [
     name: 'AF 85mm F1.8 Z',
     alias: '人像头',
     acquiredAt: '2024',
-    cover:
-      'https://images.unsplash.com/photo-1554136545-9f51dbc59c01?auto=format&fit=crop&w=1400&q=80',
+    // 原 Unsplash 图已失效，改用已下载到本地的图片
+    cover: '/gear/viltrox-85-f18.jpg',
     spec: [
       { label: '焦段', value: '85mm 定焦' },
       { label: '光圈', value: 'F1.8' },
@@ -73,8 +73,8 @@ export const gear: GearItem[] = [
     name: 'NIKKOR Z 24-50mm F4-6.3',
     alias: '挂机头',
     acquiredAt: '2024',
-    cover:
-      'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&w=1400&q=80',
+    // 已下载到本地 public/gear/，避免外链失效
+    cover: '/gear/nikkor-24-50.jpg',
     spec: [
       { label: '焦段', value: '24-50mm 变焦' },
       { label: '光圈', value: 'F4-6.3' },
