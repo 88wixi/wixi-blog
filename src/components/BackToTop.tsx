@@ -32,7 +32,7 @@ const BackToTop = () => {
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
       aria-label="回到顶部"
       title="回到顶部"
-      className={`group fixed bottom-6 right-5 z-[70] flex h-12 w-12 items-center justify-center rounded-full border border-paper-200/70 bg-paper-50/85 text-ink-700 shadow-[0_4px_16px_rgba(20,23,31,0.12)] backdrop-blur transition-all duration-300 hover:border-coral-400/60 hover:text-coral-500 hover:shadow-[0_6px_22px_rgba(238,106,58,0.22)] sm:bottom-8 sm:right-8 ${
+      className={`group fixed right-5 bottom-[28%] z-[70] flex h-12 w-12 items-center justify-center rounded-full border border-paper-200/70 bg-paper-50/85 text-ink-700 shadow-[0_4px_16px_rgba(20,23,31,0.12)] backdrop-blur transition-all duration-300 hover:border-coral-400/60 hover:text-coral-500 hover:shadow-[0_6px_22px_rgba(238,106,58,0.22)] sm:right-8 ${
         visible ? 'opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
       }`}
     >
