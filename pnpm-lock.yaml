@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@fontsource/noto-sans-sc':
+        specifier: ^5.2.9
+        version: 5.2.9
+      '@fontsource/noto-serif-sc':
+        specifier: ^5.2.9
+        version: 5.2.9
       '@types/leaflet':
         specifier: ^1.9.21
         version: 1.9.21
@@ -186,6 +192,12 @@ packages:
   '@eslint/plugin-kit@0.7.2':
     resolution: {integrity: sha512-+CNAzxglkrpNf/kKywqQfk74QjtceuOE7Qm+AF8miRvPF/wmmK5+OJOgVh3AVTT3RP2mH3+FOaxlE5v72owk0A==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
+
+  '@fontsource/noto-sans-sc@5.2.9':
+    resolution: {integrity: sha512-bTUIWGBgJDpwi5qAr+x0/lcgv80IHTB9vl6s2f6EymZEa7qYV99yNRBZuKFT+SYDKVunZrjCEhWtpxqmbXWl5Q==}
+
+  '@fontsource/noto-serif-sc@5.2.9':
+    resolution: {integrity: sha512-+wosdNmyrtRjnqJ/4A6i99jApm6ye34n8Nh7jUO3P/+6Hd1ZBY1gB9yGaI5jVxb56RS1lM2kTc0DzX1ifRO2MA==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1458,6 +1470,10 @@ snapshots:
     dependencies:
       '@eslint/core': 1.2.1
       levn: 0.4.1
+
+  '@fontsource/noto-sans-sc@5.2.9': {}
+
+  '@fontsource/noto-serif-sc@5.2.9': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

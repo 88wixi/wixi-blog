@@ -11,6 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/noto-sans-sc": "^5.2.9",
+    "@fontsource/noto-serif-sc": "^5.2.9",
     "@types/leaflet": "^1.9.21",
     "leaflet": "^1.9.4",
     "react": "^19.2.6",
