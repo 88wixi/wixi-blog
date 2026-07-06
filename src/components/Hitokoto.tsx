@@ -8,7 +8,8 @@ type HitokotoResponse = {
 }
 
 const ENDPOINT = 'https://v1.hitokoto.cn/?c=a&c=b&c=d&c=i&c=k&encode=json'
-const ROTATE_MS = 8000
+// 页面开着会一直轮换，对公共免费接口客气点，也省访客流量
+const ROTATE_MS = 30000
 
 const fallback: HitokotoResponse = {
   uuid: 'local-fallback',

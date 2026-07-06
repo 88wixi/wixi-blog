@@ -78,6 +78,18 @@ const LetterIntro = () => {
     }
   }
 
+  // 键盘也能跳过（Esc / Enter / 空格）：遮罩不可聚焦，只能挂在 window 上
+  useEffect(() => {
+    if (phase === 'gone') return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') skip()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // skip 走 phaseRef，不需要进依赖
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
+
   if (phase === 'gone') return null
 
   const isOpen = phase === 'open'

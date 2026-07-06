@@ -41,19 +41,20 @@ const Navbar = () => {
     <header className="sticky top-0 z-20 border-b border-paper-200/70 bg-paper-50/85 backdrop-blur">
       {/* pr-20 在手机端为右上角的拉绳开关留出空位，避免遮住「关于」 */}
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 pr-20 sm:px-8">
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/" className="flex shrink-0 items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink-900 text-paper-50">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 20h9" />
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
           </span>
-          <span className="font-serif text-lg font-medium text-ink-900 sm:text-xl">
+          {/* 站名在窄屏隐藏：6 个导航项 + 站名 + 右上拉绳的 pr-20 在 375px 宽放不下 */}
+          <span className="hidden font-serif text-lg font-medium text-ink-900 md:inline sm:text-xl">
             wixi 的林间小记
           </span>
         </Link>
 
-        <nav className="flex items-center gap-5 sm:gap-7">
+        <nav className="flex items-center gap-3 sm:gap-7">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
               {item.label}
