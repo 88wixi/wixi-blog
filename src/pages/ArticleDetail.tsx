@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -8,12 +8,71 @@ import { formatDate } from '../lib/date.ts'
 
 const sortedArticles = [...articles].sort((a, b) => (a.date < b.date ? 1 : -1))
 
+/* ---------- 目录（TOC）：从正文提取 h2/h3，宽屏右侧悬浮 ---------- */
+
+type TocItem = { id: string; text: string; level: 2 | 3 }
+
+// 中文标题直接保留字符做锚点 id；空白转 -，去掉标点
+const slugify = (s: string): string =>
+  s
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\p{L}\p{N}-]/gu, '')
+
+// 提取前先去掉围栏代码块，避免代码注释里的 ## 混进目录
+const extractToc = (md: string): TocItem[] => {
+  const items: TocItem[] = []
+  const clean = md.replace(/```[\s\S]*?```/g, '')
+  for (const m of clean.matchAll(/^(#{2,3})\s+(.+?)\s*$/gm)) {
+    items.push({ level: m[1].length as 2 | 3, text: m[2], id: slugify(m[2]) })
+  }
+  return items
+}
+
+// 取渲染节点的纯文本（标题里带行内代码/加粗时也能得到完整文字做 id）
+const nodeText = (node: ReactNode): string => {
+  if (node == null || typeof node === 'boolean') return ''
+  if (typeof node === 'string' || typeof node === 'number') return String(node)
+  if (Array.isArray(node)) return node.map(nodeText).join('')
+  if (typeof node === 'object' && 'props' in node)
+    return nodeText((node as ReactElement<{ children?: ReactNode }>).props.children)
+  return ''
+}
+
 const ArticleDetail = () => {
   const { slug } = useParams<{ slug: string }>()
   const [progress, setProgress] = useState(0)
 
   const article = useMemo(() => articles.find((a) => a.slug === slug), [slug])
   usePageTitle(article?.title ?? '文章')
+
+  const toc = useMemo(() => (article ? extractToc(article.content) : []), [article])
+  const [activeId, setActiveId] = useState('')
+
+  // 滚动高亮：观察正文标题，最先进入视口上部的算当前小节
+  useEffect(() => {
+    if (toc.length < 2) return
+    const headings = Array.from(document.querySelectorAll('article h2[id], article h3[id]'))
+    if (headings.length === 0) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting)
+        if (visible.length > 0) setActiveId(visible[0].target.id)
+      },
+      { rootMargin: '-80px 0px -70% 0px' },
+    )
+    headings.forEach((h) => io.observe(h))
+    return () => io.disconnect()
+  }, [toc, slug])
+
+  const scrollToHeading = (id: string) => {
+    const el = document.getElementById(id)
+    if (!el) return
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' })
+    history.replaceState(null, '', `#${id}`)
+  }
 
   const { prev, next, related } = useMemo(() => {
     if (!article) return { prev: undefined, next: undefined, related: [] as typeof articles }
@@ -28,6 +87,13 @@ const ArticleDetail = () => {
   }, [article])
 
   useEffect(() => {
+    // 带锚点的深链（分享的小节链接）优先定位到对应标题；中文 id 在 URL 里会被转义
+    const hashId = decodeURIComponent(window.location.hash.slice(1))
+    const target = hashId ? document.getElementById(hashId) : null
+    if (target) {
+      target.scrollIntoView()
+      return
+    }
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
   }, [slug])
 
@@ -68,7 +134,39 @@ const ArticleDetail = () => {
         />
       </div>
 
-      <article className="mx-auto max-w-3xl px-5 py-14 sm:px-8 sm:py-20">
+      <article className="relative mx-auto max-w-3xl px-5 py-14 sm:px-8 sm:py-20">
+        {/* 目录：只在有 ≥2 个小节标题时出现；挂在正文右侧的空白区（xl 起） */}
+        {toc.length >= 2 && (
+          <nav aria-label="目录" className="absolute left-full top-0 hidden h-full xl:block">
+            <div className="sticky top-28 ml-8 w-52 border-l border-paper-200 pl-4">
+              <p className="mb-3 text-[10px] font-medium tracking-[0.25em] text-coral-500 uppercase">
+                on this page
+              </p>
+              <ul className="space-y-1.5">
+                {toc.map((item, i) => (
+                  <li key={`${item.id}-${i}`}>
+                    <a
+                      href={`#${item.id}`}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        scrollToHeading(item.id)
+                      }}
+                      className={[
+                        item.level === 3 ? 'pl-3' : '',
+                        'block truncate text-xs leading-relaxed transition-colors',
+                        activeId === item.id
+                          ? 'text-coral-600'
+                          : 'text-ink-500 hover:text-ink-900',
+                      ].join(' ')}
+                    >
+                      {item.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </nav>
+        )}
         <Link to="/articles" className="text-xs text-ink-500 hover:text-coral-500">
           ← 所有文章
         </Link>
@@ -93,12 +191,18 @@ const ArticleDetail = () => {
             components={{
               p: ({ children }) => <p>{children}</p>,
               h2: ({ children }) => (
-                <h2 className="mt-12 mb-4 font-serif text-2xl text-ink-900 sm:text-3xl">
+                <h2
+                  id={slugify(nodeText(children))}
+                  className="mt-12 mb-4 scroll-mt-24 font-serif text-2xl text-ink-900 sm:text-3xl"
+                >
                   {children}
                 </h2>
               ),
               h3: ({ children }) => (
-                <h3 className="mt-10 mb-3 font-serif text-xl text-ink-900 sm:text-2xl">
+                <h3
+                  id={slugify(nodeText(children))}
+                  className="mt-10 mb-3 scroll-mt-24 font-serif text-xl text-ink-900 sm:text-2xl"
+                >
                   {children}
                 </h3>
               ),
