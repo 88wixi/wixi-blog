@@ -20,9 +20,11 @@
 
 - **首页 `/`** — Hero 轮播、状态栏(正在读 / 本周主题 / 下一篇)、最近文章
 - **文章 `/articles`** — 按分类浏览文章列表
-- **文章详情 `/articles/:slug`** — Markdown 风格的阅读页
+- **文章详情 `/articles/:slug`** — Markdown 风格的阅读页,宽屏右侧自动出目录（≥2 个 `##` 小节时）,尾部有「喜欢」按钮
 - **照片 `/photos`** — 按城市分组的影像记录
 - **城市相册 `/photos/:city`** — 单个城市的照片集合
+- **碎念 `/memos`** — 不成篇的短句 + 随手一图,数据在 R2 的 `memos.json`,发布不用改代码
+- **RSS `/rss.xml`** — 构建时由 `scripts/rss.mjs` 生成
 - **404 `/*`** — 自定义未找到页
 
 文章分为四类:`生活设计 / 前端札记 / 写作 / 观察`,正文以 **Markdown** 写在 `content/articles/*.md`,由 `src/data/articles.ts` 在构建时读取(`import.meta.glob`)。
@@ -43,6 +45,31 @@
 - 新城市:先在 `meta` 数组加一条元数据(`slug / name / region / description / coords`),再按该 `slug` 往 R2 上传图片。照片标题由文件名自动推断(相机默认名回退为「城市 · 序号」)。
 
 Worker 的部署见 [`worker/README.md`](worker/README.md)。
+
+## 碎念(R2 直链 JSON)
+
+「碎念」的数据是 R2 bucket 根路径的一份 `memos.json`,经 `https://img.wixi88.xyz/memos.json` 直链读取(`.json` 不在 Cloudflare 默认边缘缓存扩展名里,更新即时可见)。格式:
+
+```json
+[
+  { "date": "2026-07-06", "text": "第一行\n第二行", "image": "hero/forest-02.jpg" }
+]
+```
+
+`image` 可选,填 R2 相对路径或完整 URL。发布一条:本地编辑后
+
+```bash
+npx wrangler r2 object put wixi-blog/memos.json --file=memos.json --content-type="application/json; charset=utf-8" --remote
+```
+
+## 文章「喜欢」(Worker + KV)
+
+`worker-api/` 是第二个 Cloudflare Worker,绑定自定义域 `api.wixi88.xyz`(workers.dev 国内被墙):
+
+- `GET /likes/<slug>` → `{ "count": n }`
+- `POST /likes/<slug>` → 计数 +1
+
+计数存 KV(`likes:<slug>`),前端 `LikeButton` 用 localStorage 防重复点。改动后在 `worker-api/` 下 `npx wrangler deploy` 发布。
 
 ## 技术栈
 

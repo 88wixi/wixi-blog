@@ -4,14 +4,16 @@ const navItems = [
   { to: '/', label: '小记', end: true },
   { to: '/articles', label: '文章', end: false },
   { to: '/photos', label: '照片', end: false },
+  { to: '/memos', label: '碎念', end: false },
   { to: '/travel', label: '行迹', end: false },
   { to: '/gear', label: '装备', end: false },
   { to: '/about', label: '关于', end: false },
 ]
 
+// 手机端 7 个导航项 + 右上拉绳的 pr-20：字号和间距都比 sm 再小一档才放得下 375px
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   [
-    'nav-link text-sm transition-colors sm:text-base',
+    'nav-link text-[13px] transition-colors sm:text-base',
     isActive ? 'is-active text-ink-900' : 'text-ink-500 hover:text-ink-900',
   ].join(' ')
 
@@ -54,7 +56,7 @@ const Navbar = () => {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-3 sm:gap-7">
+        <nav className="flex items-center gap-2 sm:gap-7">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
               {item.label}
