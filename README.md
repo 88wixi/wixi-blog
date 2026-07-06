@@ -56,11 +56,15 @@ Worker 的部署见 [`worker/README.md`](worker/README.md)。
 ]
 ```
 
-`image` 可选,填 R2 相对路径或完整 URL。发布一条:本地编辑后
+`image` 可选,填 R2 相对路径(相册里的图直接写 `城市slug/文件名`)或完整 URL。
+
+**发一条碎念**:编辑仓库里的底稿 `content/memos.json`(新条目加在数组开头,页面反正按日期倒序),然后
 
 ```bash
-npx wrangler r2 object put wixi-blog/memos.json --file=memos.json --content-type="application/json; charset=utf-8" --remote
+pnpm memos:push
 ```
+
+即发布(需要本机 wrangler 已登录)。底稿在 git 里,记得顺手 commit 一下留个历史。
 
 ## 文章「喜欢」(Worker + KV)
 
