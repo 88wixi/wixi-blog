@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { articles, categoryMeta, type Category } from '../data/articles.ts'
-
-const formatDate = (d: string) => {
-  const date = new Date(d)
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(
-    date.getDate(),
-  ).padStart(2, '0')}`
-}
+import { usePageTitle } from '../hooks/usePageTitle.ts'
+import { formatDate } from '../lib/date.ts'
 
 type Filter = 'all' | Category
 
@@ -22,6 +17,7 @@ const filters: { value: Filter; label: string }[] = [
 const allTags = Array.from(new Set(articles.flatMap((a) => a.tags))).sort()
 
 const Articles = () => {
+  usePageTitle('文章')
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTag = searchParams.get('tag')
 

@@ -1,14 +1,19 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { articles, categoryMeta } from '../data/articles.ts'
+import { thumb } from '../data/photos.ts'
+import { formatDate } from '../lib/date.ts'
+import { usePageTitle } from '../hooks/usePageTitle.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 import Hitokoto from '../components/Hitokoto.tsx'
 
+// Hero 图放自己的 R2（img.wixi88.xyz，国内可访问）；此前用 images.unsplash.com，
+// 大陆基本加载不出来。展示走 thumb() 缩略图变换，失败时 onError 回退原图。
 const heroImages = [
-  'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=2000&q=80',
-  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=2000&q=80',
-  'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=2000&q=80',
-  'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&w=2000&q=80',
+  'https://img.wixi88.xyz/hero/forest-01.jpg',
+  'https://img.wixi88.xyz/hero/forest-02.jpg',
+  'https://img.wixi88.xyz/hero/forest-03.jpg',
+  'https://img.wixi88.xyz/hero/forest-04.jpg',
 ]
 
 const HERO_INTERVAL_MS = 7000
@@ -19,13 +24,6 @@ const statusItems = [
   { dot: 'text-ink-700', label: '下一篇', value: '用 Tailwind 写内容型页面' },
 ]
 
-const formatDate = (d: string) => {
-  const date = new Date(d)
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(
-    date.getDate(),
-  ).padStart(2, '0')}`
-}
-
 const delay = (ms: number): CSSProperties => ({ ['--delay' as string]: `${ms}ms` })
 
 // 全角开引号/书名号（《「『【（〈“）字形偏右、左侧留白，用负缩进让首字左对齐
@@ -33,9 +31,21 @@ const OPENING_PUNCT = /^[《「『【（〈“]/
 const optical = (v: string): CSSProperties => (OPENING_PUNCT.test(v) ? { textIndent: '-0.42em' } : {})
 
 const Home = () => {
+  usePageTitle()
   const latest = [...articles].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 4)
   const [latestRef, latestVisible] = useReveal<HTMLDivElement>()
   const [heroIndex, setHeroIndex] = useState(0)
+  // 只挂载「展示过的 + 下一张」：4 张大图全挂会在首屏一次性下载
+  // （对视口内 opacity-0 的图，loading="lazy" 不生效）。展示过的保留以便淡出。
+  const [heroMounted, setHeroMounted] = useState<Set<number>>(() => new Set([0]))
+
+  useEffect(() => {
+    setHeroMounted((prev) => {
+      const next = (heroIndex + 1) % heroImages.length
+      if (prev.has(heroIndex) && prev.has(next)) return prev
+      return new Set(prev).add(heroIndex).add(next)
+    })
+  }, [heroIndex])
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -51,18 +61,23 @@ const Home = () => {
       {/* Hero */}
       <section className="relative h-[520px] w-full overflow-hidden sm:h-[560px]">
         <div className="absolute inset-0">
-          {heroImages.map((src, i) => (
-            <img
-              key={src}
-              src={src}
-              alt=""
-              loading={i === 0 ? 'eager' : 'lazy'}
-              className={[
-                'absolute inset-0 h-full w-full object-cover transition-opacity duration-[1500ms] ease-out',
-                i === heroIndex ? 'opacity-100 anim-ken-burns' : 'opacity-0',
-              ].join(' ')}
-            />
-          ))}
+          {heroImages.map((src, i) =>
+            heroMounted.has(i) ? (
+              <img
+                key={src}
+                src={thumb(src, 1600)}
+                alt=""
+                decoding="async"
+                onError={(e) => {
+                  if (e.currentTarget.src !== src) e.currentTarget.src = src
+                }}
+                className={[
+                  'absolute inset-0 h-full w-full object-cover transition-opacity duration-[1500ms] ease-out',
+                  i === heroIndex ? 'opacity-100 anim-ken-burns' : 'opacity-0',
+                ].join(' ')}
+              />
+            ) : null,
+          )}
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-paper-50/95 via-paper-50/80 to-paper-50/40" />
         <div className="relative mx-auto flex h-full w-full max-w-6xl items-center px-5 sm:px-8">

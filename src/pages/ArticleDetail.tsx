@@ -3,13 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { articles, categoryMeta } from '../data/articles.ts'
-
-const formatDate = (d: string) => {
-  const date = new Date(d)
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(
-    date.getDate(),
-  ).padStart(2, '0')}`
-}
+import { usePageTitle } from '../hooks/usePageTitle.ts'
+import { formatDate } from '../lib/date.ts'
 
 const sortedArticles = [...articles].sort((a, b) => (a.date < b.date ? 1 : -1))
 
@@ -18,6 +13,7 @@ const ArticleDetail = () => {
   const [progress, setProgress] = useState(0)
 
   const article = useMemo(() => articles.find((a) => a.slug === slug), [slug])
+  usePageTitle(article?.title ?? '文章')
 
   const { prev, next, related } = useMemo(() => {
     if (!article) return { prev: undefined, next: undefined, related: [] as typeof articles }
