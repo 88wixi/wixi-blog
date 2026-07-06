@@ -40,7 +40,8 @@ const Articles = () => {
         q
           ? a.title.toLowerCase().includes(q) ||
             a.excerpt.toLowerCase().includes(q) ||
-            a.tags.some((t) => t.toLowerCase().includes(q))
+            a.tags.some((t) => t.toLowerCase().includes(q)) ||
+            a.content.toLowerCase().includes(q) // 正文本来就内联在包里，全文搜索零成本
           : true,
       )
       .sort((a, b) => (a.date < b.date ? 1 : -1))
@@ -90,7 +91,7 @@ const Articles = () => {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索文章、标签或摘要"
+            placeholder="搜索标题、标签或正文"
             className="w-full rounded-xl border border-paper-200 bg-paper-50 py-2.5 pl-10 pr-3 text-sm text-ink-900 placeholder:text-ink-500 focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-400/20"
           />
         </div>
