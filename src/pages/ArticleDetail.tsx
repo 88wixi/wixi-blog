@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 
 import { Link, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import LikeButton from '../components/LikeButton.tsx'
 import { articles, categoryMeta } from '../data/articles.ts'
 import { usePageTitle } from '../hooks/usePageTitle.ts'
 import { formatDate } from '../lib/date.ts'
@@ -258,6 +259,8 @@ const ArticleDetail = () => {
             {article.content}
           </ReactMarkdown>
         </div>
+
+        <LikeButton slug={article.slug} />
 
         <div className="mt-12 flex flex-wrap gap-2">
           {article.tags.map((tag) => (
