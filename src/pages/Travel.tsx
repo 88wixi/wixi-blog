@@ -3,13 +3,18 @@ import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import '../lib/smoothWheelZoom.ts'
+import { wgs84ToGcj02 } from '../lib/gcj02.ts'
 import { thumb, type City } from '../data/photos.ts'
+import { usePageTitle } from '../hooks/usePageTitle.ts'
 import { usePhotoCities } from '../hooks/usePhotoCities.ts'
 
 /** 高德地图（AutoNavi）中文路网瓦片 —— 中国 + 日本城市都显示中文 */
 const TILE_URL =
   'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
 const TILE_SUBDOMAINS = '1234'
+
+// 高德瓦片是 GCJ-02 坐标系，meta 里的 WGS-84 坐标画上去要先加偏（境外坐标原样返回）
+const pinCoords = (c: City): [number, number] => wgs84ToGcj02(c.coords)
 
 const makeIcon = (active: boolean) =>
   L.divIcon({
@@ -20,6 +25,7 @@ const makeIcon = (active: boolean) =>
   })
 
 const Travel = () => {
+  usePageTitle('行迹')
   const { cities } = usePhotoCities()
   const mapRef = useRef<HTMLDivElement | null>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
@@ -61,11 +67,11 @@ const Travel = () => {
     }).addTo(map)
 
     // 自动框住所有 pin
-    const bounds = L.latLngBounds(cities.map((c) => c.coords))
+    const bounds = L.latLngBounds(cities.map(pinCoords))
     map.fitBounds(bounds, { padding: [50, 50] })
 
     cities.forEach((c) => {
-      const marker = L.marker(c.coords, {
+      const marker = L.marker(pinCoords(c), {
         icon: makeIcon(c.slug === cities[0]?.slug),
         title: c.name,
       }).addTo(map)
@@ -77,7 +83,7 @@ const Travel = () => {
       })
       marker.on('click', () => {
         setActiveSlug(c.slug)
-        map.flyTo(c.coords, Math.max(map.getZoom(), 5), { duration: 0.8 })
+        map.flyTo(pinCoords(c), Math.max(map.getZoom(), 5), { duration: 0.8 })
       })
       markersRef.current[c.slug] = marker
     })
@@ -106,7 +112,7 @@ const Travel = () => {
   const flyToCity = (city: City) => {
     setActiveSlug(city.slug)
     mapInstanceRef.current?.flyTo(
-      city.coords,
+      pinCoords(city),
       Math.max(mapInstanceRef.current.getZoom(), 5),
       { duration: 0.8 },
     )
