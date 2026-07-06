@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
+import { usePageTitle } from '../hooks/usePageTitle.ts'
 
 const NotFound = () => {
+  usePageTitle('页面不见了')
   return (
     <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-5 px-5 py-32 text-center sm:px-8">
       <p className="font-serif text-7xl text-ink-900">404</p>

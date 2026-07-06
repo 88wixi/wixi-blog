@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { usePageTitle } from '../hooks/usePageTitle.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 
 const timeline = [
@@ -39,6 +40,7 @@ const principles = [
 ]
 
 const About = () => {
+  usePageTitle('关于')
   const [tlRef, tlVisible] = useReveal<HTMLOListElement>()
   const [nowRef, nowVisible] = useReveal<HTMLDivElement>()
 

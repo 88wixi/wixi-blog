@@ -5,6 +5,7 @@ import {
   GEAR_FALLBACK_COVER,
   type GearCategory,
 } from '../data/gear.ts'
+import { usePageTitle } from '../hooks/usePageTitle.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 
 type Filter = 'all' | GearCategory
@@ -17,6 +18,7 @@ const filters: { value: Filter; label: string }[] = [
 ]
 
 const Gear = () => {
+  usePageTitle('装备')
   const [filter, setFilter] = useState<Filter>('all')
   const [listRef, listVisible] = useReveal<HTMLDivElement>()
 

@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { thumb } from '../data/photos.ts'
+import { usePageTitle } from '../hooks/usePageTitle.ts'
 import { usePhotoCities } from '../hooks/usePhotoCities.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 
 const Photos = () => {
+  usePageTitle('照片')
   const { cities, ready } = usePhotoCities()
   const [gridRef, visible] = useReveal<HTMLDivElement>()
 
