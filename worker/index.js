@@ -44,7 +44,9 @@ export default {
     return new Response(JSON.stringify(grouped), {
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'public, max-age=60', // CDN 缓存 60s，新图最多 1 分钟出现
+        // CDN 缓存 60s，新图最多 1 分钟出现；过期后一天内先回旧清单、后台再刷新，
+        // 避免恰好撞上过期的访客干等一次列桶
+        'Cache-Control': 'public, max-age=60, stale-while-revalidate=86400',
         ...cors,
       },
     })
