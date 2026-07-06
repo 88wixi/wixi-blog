@@ -5,6 +5,8 @@ const socials = [
   { href: 'https://github.com/88wixi', label: 'GitHub' },
   { href: 'https://www.xiaohongshu.com/user/profile/5f48e164000000000101d83d', label: '小红书' },
   { href: 'mailto:3212722403@qq.com', label: 'Email' },
+  // BASE_URL 适配 GH Pages 子路径（/wixi-blog/）
+  { href: `${import.meta.env.BASE_URL}rss.xml`, label: 'RSS' },
 ]
 
 const Footer = () => {
