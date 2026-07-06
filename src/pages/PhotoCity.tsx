@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import LazyImage from '../components/LazyImage.tsx'
 import ZoomableImage from '../components/ZoomableImage.tsx'
 import { thumb } from '../data/photos.ts'
+import { usePageTitle } from '../hooks/usePageTitle.ts'
 import { usePhotoCities } from '../hooks/usePhotoCities.ts'
 import { useReveal } from '../hooks/useReveal.ts'
 
@@ -11,6 +12,7 @@ const PhotoCity = () => {
   const { city: slug } = useParams<{ city: string }>()
   const { cities, ready } = usePhotoCities()
   const city = cities.find((c) => c.slug === slug)
+  usePageTitle(city ? `${city.name} · 照片` : '照片')
   const photos = city?.photos ?? []
   const [index, setIndex] = useState<number | null>(null)
   const [galleryRef, galleryVisible] = useReveal<HTMLDivElement>()
@@ -21,6 +23,12 @@ const PhotoCity = () => {
       setIndex((cur) => (cur === null ? cur : (cur + delta + photos.length) % photos.length)),
     [photos.length],
   )
+
+  // 清单后台更新导致照片数变少时收回越界的 index：否则 active 为 undefined，
+  // 灯箱不渲染但下面的 effect 仍锁着 body 滚动，页面就卡住了
+  useEffect(() => {
+    if (index !== null && index >= photos.length) setIndex(photos.length ? photos.length - 1 : null)
+  }, [index, photos.length])
 
   // Esc 关闭、← → 切换；打开时锁定背景滚动
   useEffect(() => {

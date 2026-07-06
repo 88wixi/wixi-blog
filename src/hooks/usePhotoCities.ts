@@ -3,6 +3,7 @@ import {
   buildCities,
   cities as staticCities,
   fetchManifest,
+  isManifest,
   PHOTOS_API,
   type City,
   type R2Manifest,
@@ -12,10 +13,14 @@ import {
 // 后台再请求校验，有变化才更新——避免「空白占位 → 突然有图」的闪烁。
 const LS_KEY = 'wixi-photos-manifest'
 
+// GitHub Pages 上同域的其他项目也能写这份 localStorage，格式演进或被写坏时
+// 若不校验形状，模块顶层的 buildCities 会直接抛错 → 每次进站都白屏。
 const readLS = (): R2Manifest | null => {
   try {
     const s = localStorage.getItem(LS_KEY)
-    return s ? (JSON.parse(s) as R2Manifest) : null
+    if (!s) return null
+    const parsed: unknown = JSON.parse(s)
+    return isManifest(parsed) ? parsed : null
   } catch {
     return null
   }

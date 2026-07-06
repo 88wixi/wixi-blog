@@ -81,11 +81,31 @@ const meta: Omit<City, 'photos' | 'cover'>[] = [
 /** R2 自动清单：slug -> 文件名数组（由 Worker 返回）。传入后并入对应城市的照片。 */
 export type R2Manifest = Record<string, string[]>
 
-export const buildCities = (r2: R2Manifest = {}): City[] =>
-  meta.map((c) => {
+/** 清单形状校验：缓存或接口内容不合格时丢弃，避免 buildCities 在模块顶层抛错白屏。 */
+export const isManifest = (v: unknown): v is R2Manifest =>
+  typeof v === 'object' &&
+  v !== null &&
+  !Array.isArray(v) &&
+  Object.values(v).every(
+    (files) => Array.isArray(files) && files.every((f) => typeof f === 'string'),
+  )
+
+// R2 里的非城市素材目录（如首页 hero 图），列清单时会带出来，不参与「未登记城市」提醒
+const ASSET_DIRS = new Set(['hero'])
+
+export const buildCities = (r2: R2Manifest = {}): City[] => {
+  // 传了新城市照片但忘了在上面 meta 里登记时，照片会静默消失——提醒一下未来的自己
+  const known = new Set(meta.map((c) => c.slug))
+  for (const slug of Object.keys(r2)) {
+    if (!known.has(slug) && !ASSET_DIRS.has(slug)) {
+      console.warn(`[photos] R2 里有未登记的城市文件夹「${slug}」，请在 photos.ts 的 meta 数组补一条元数据`)
+    }
+  }
+  return meta.map((c) => {
     const photos = buildPhotos(c.slug, c.name, r2[c.slug] ?? [])
     return { ...c, photos, cover: photos[0]?.src }
   })
+}
 
 // 静态城市：仅含元数据、照片为空，作为首屏 / Worker 未就绪时的占位；R2 清单到达后替换
 export const cities: City[] = buildCities()
@@ -102,7 +122,8 @@ export const fetchManifest = async (): Promise<R2Manifest | null> => {
   try {
     const res = await fetch(PHOTOS_API, { headers: { Accept: 'application/json' } })
     if (!res.ok) return null
-    return (await res.json()) as R2Manifest
+    const data: unknown = await res.json()
+    return isManifest(data) ? data : null
   } catch {
     return null
   }
