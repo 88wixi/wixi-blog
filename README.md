@@ -23,7 +23,6 @@
 - **文章详情 `/articles/:slug`** — Markdown 风格的阅读页,宽屏右侧自动出目录（≥2 个 `##` 小节时）,尾部有「喜欢」按钮
 - **照片 `/photos`** — 按城市分组的影像记录
 - **城市相册 `/photos/:city`** — 单个城市的照片集合
-- **碎念 `/memos`** — 不成篇的短句 + 随手一图,数据在 R2 的 `memos.json`,发布不用改代码
 - **RSS `/rss.xml`** — 构建时由 `scripts/rss.mjs` 生成
 - **404 `/*`** — 自定义未找到页
 
@@ -45,26 +44,6 @@
 - 新城市:先在 `meta` 数组加一条元数据(`slug / name / region / description / coords`),再按该 `slug` 往 R2 上传图片。照片标题由文件名自动推断(相机默认名回退为「城市 · 序号」)。
 
 Worker 的部署见 [`worker/README.md`](worker/README.md)。
-
-## 碎念(R2 直链 JSON)
-
-「碎念」的数据是 R2 bucket 根路径的一份 `memos.json`,经 `https://img.wixi88.xyz/memos.json` 直链读取(`.json` 不在 Cloudflare 默认边缘缓存扩展名里,更新即时可见)。格式:
-
-```json
-[
-  { "date": "2026-07-06", "text": "第一行\n第二行", "image": "hero/forest-02.jpg" }
-]
-```
-
-`image` 可选,填 R2 相对路径(相册里的图直接写 `城市slug/文件名`)或完整 URL。
-
-**发一条碎念**:编辑仓库里的底稿 `content/memos.json`(新条目加在数组开头,页面反正按日期倒序),然后
-
-```bash
-pnpm memos:push
-```
-
-即发布(需要本机 wrangler 已登录)。底稿在 git 里,记得顺手 commit 一下留个历史。
 
 ## 文章「喜欢」(Worker + KV)
 

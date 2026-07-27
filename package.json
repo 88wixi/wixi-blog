@@ -8,7 +8,6 @@
     "build": "tsc -b && vite build && node scripts/rss.mjs",
     "typecheck": "tsc -b",
     "lint": "eslint .",
-    "memos:push": "npx wrangler r2 object put wixi-blog/memos.json --file=content/memos.json --content-type=\"application/json; charset=utf-8\" --remote",
     "preview": "vite preview"
   },
   "dependencies": {

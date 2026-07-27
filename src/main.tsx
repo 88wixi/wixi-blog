@@ -11,7 +11,6 @@ import Articles from './pages/Articles.tsx'
 const ArticleDetail = lazy(() => import('./pages/ArticleDetail.tsx'))
 import Photos from './pages/Photos.tsx'
 import PhotoCity from './pages/PhotoCity.tsx'
-import Memos from './pages/Memos.tsx'
 import About from './pages/About.tsx'
 import Gear from './pages/Gear.tsx'
 import Travel from './pages/Travel.tsx'
@@ -37,7 +36,6 @@ createRoot(rootElement).render(
           />
           <Route path="photos" element={<Photos />} />
           <Route path="photos/:city" element={<PhotoCity />} />
-          <Route path="memos" element={<Memos />} />
           <Route path="about" element={<About />} />
           <Route path="gear" element={<Gear />} />
           <Route path="travel" element={<Travel />} />
