@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import { motion } from 'motion/react'
+import { springLayout } from '../lib/motion.ts'
 
 type Props = {
   src: string
   alt: string
   className?: string
+  /** 与灯箱共享的元素 id：点开时这张图从格子里连续放大到全屏，关闭时飞回来 */
+  layoutId?: string
   /**
    * 未加载时用来撑出高度的宽高比（宽/高）。瀑布流里若不占位，图片加载前高度为 0，
    * 会全部堆进首屏视口、被浏览器判定为「可见」而一次性加载，懒加载就失效了。
@@ -18,7 +22,7 @@ type Props = {
  * 未加载时按宽高比占位撑高、加载完淡入；失败可回退原图。
  * 相比原生 loading="lazy"，在 masonry(columns) 布局下更可靠——不会一次性把整列图片塞进 DOM。
  */
-const LazyImage = ({ src, alt, className, ratio = 0.78, fallbackSrc }: Props) => {
+const LazyImage = ({ src, alt, className, ratio = 0.78, fallbackSrc, layoutId }: Props) => {
   const wrapRef = useRef<HTMLDivElement>(null)
   const [inView, setInView] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -52,7 +56,9 @@ const LazyImage = ({ src, alt, className, ratio = 0.78, fallbackSrc }: Props) =>
       style={loaded ? undefined : { aspectRatio: String(ratio) }}
     >
       {inView && (
-        <img
+        <motion.img
+          layoutId={layoutId}
+          transition={springLayout}
           src={src}
           alt={alt}
           decoding="async"

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { articles } from '../data/articles.ts'
+import { solarTermOf } from '../lib/solarTerms.ts'
 
 const socials = [
   { href: 'https://github.com/88wixi', label: 'GitHub' },
@@ -11,6 +12,7 @@ const socials = [
 
 const Footer = () => {
   const year = new Date().getFullYear()
+  const season = solarTermOf()
   const recent = [...articles].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 3)
 
   return (
@@ -81,11 +83,19 @@ const Footer = () => {
         </div>
       </div>
       <div className="border-t border-paper-200/70">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 text-xs text-ink-500 sm:px-8">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-5 text-xs text-ink-500 sm:px-8">
           <span className="font-serif">© {year} wixi · 林间小记</span>
-          <span className="hidden font-mono text-[11px] tracking-wide opacity-70 sm:inline">
-            made with care, in a slow afternoon
-          </span>
+          <div className="flex items-center gap-4">
+            {/* 时令：一年悄悄换二十四次，算上七十二候是七十二次。
+                零请求、零动效、纯文本（读屏能读到）。手机上也留着——
+                它比右边那句英文小标语更有意义。 */}
+            <span className="font-serif text-[11px] tracking-wide text-ink-500">
+              {season.term} · {season.pentad}
+            </span>
+            <span className="hidden font-mono text-[11px] tracking-wide opacity-70 sm:inline">
+              made with care, in a slow afternoon
+            </span>
+          </div>
         </div>
       </div>
     </footer>

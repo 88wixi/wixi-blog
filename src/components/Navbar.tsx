@@ -1,4 +1,6 @@
 import { NavLink, Link } from 'react-router-dom'
+import { motion } from 'motion/react'
+import { springLayout, springTouch } from '../lib/motion.ts'
 
 const navItems = [
   { to: '/', label: '小记', end: true },
@@ -25,16 +27,19 @@ const IconButton = ({
   label: string
   children: React.ReactNode
 }) => (
-  <a
+  <motion.a
     href={href}
     target="_blank"
     rel="noreferrer"
     aria-label={label}
     title={label}
-    className="flex h-9 w-9 items-center justify-center rounded-lg border border-paper-200 bg-paper-50 text-ink-700 transition-all hover:-translate-y-0.5 hover:border-coral-400 hover:text-coral-500"
+    whileHover={{ y: -3, rotate: -4 }}
+    whileTap={{ scale: 0.9, rotate: 0 }}
+    transition={springTouch}
+    className="flex h-9 w-9 items-center justify-center rounded-lg border border-paper-200 bg-paper-50 text-ink-700 transition-colors hover:border-coral-400 hover:text-coral-500"
   >
     {children}
-  </a>
+  </motion.a>
 )
 
 const Navbar = () => {
@@ -58,7 +63,20 @@ const Navbar = () => {
         <nav className="flex items-center gap-2 sm:gap-7">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  {item.label}
+                  {/* 当前页下划线：同一个 layoutId 在各链接间共享，切页时这一小段
+                      珊瑚色会从上一项「滑」到新的一项，而不是这边消失那边出现。 */}
+                  {isActive && (
+                    <motion.span
+                      layoutId="nav-underline"
+                      className="absolute inset-x-0 -bottom-1 h-0.5 rounded-full bg-coral-500"
+                      transition={springLayout}
+                    />
+                  )}
+                </>
+              )}
             </NavLink>
           ))}
           <div className="hidden items-center gap-2 sm:flex">

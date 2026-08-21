@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { motion } from 'motion/react'
+import { springLayout } from '../lib/motion.ts'
 
 type Pt = { x: number; y: number }
 
@@ -20,10 +22,22 @@ const ZoomableImage = ({
   src,
   alt,
   placeholder,
+  layoutId,
+  scaleRef,
+  onZoomChange,
 }: {
   src: string
   alt: string
   placeholder?: string
+  /** 与网格缩略图共享，用于「从格子里长出来 / 飞回格子」 */
+  layoutId?: string
+  /** 缩放态变化时通知父级（父级据此决定要不要接管下滑关闭手势） */
+  onZoomChange?: (zoomed: boolean) => void
+  /**
+   * 把当前缩放同步写回给父级。父级的下滑关闭要在 pointerdown 那一刻就知道
+   * 图有没有被放大——用 state 会慢一帧（捏合回落到 1.02 的那帧就会把灯箱甩关）。
+   */
+  scaleRef?: RefObject<number>
 }) => {
   const wrapRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -32,8 +46,16 @@ const ZoomableImage = ({
   const pinch = useRef<{ d: number; m: Pt } | null>(null)
   const lastPan = useRef<Pt | null>(null)
   const lastTap = useRef(0)
-  const [zoomed, setZoomed] = useState(false)
+  const [zoomed, setZoomedState] = useState(false)
   const [loaded, setLoaded] = useState(false)
+
+  const setZoomed = useCallback(
+    (next: boolean) => {
+      setZoomedState(next)
+      onZoomChange?.(next)
+    },
+    [onZoomChange],
+  )
 
   // 切换图片时重置加载态
   useEffect(() => {
@@ -42,10 +64,11 @@ const ZoomableImage = ({
 
   const apply = useCallback(() => {
     const { scale, tx, ty } = view.current
+    if (scaleRef) scaleRef.current = scale
     if (imgRef.current) {
       imgRef.current.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`
     }
-  }, [])
+  }, [scaleRef])
 
   const center = (): Pt => {
     const r = wrapRef.current!.getBoundingClientRect()
@@ -84,14 +107,14 @@ const ZoomableImage = ({
       apply()
       setZoomed(ns > MIN_SCALE)
     },
-    [apply, clamp],
+    [apply, clamp, setZoomed],
   )
 
   const reset = useCallback(() => {
     view.current = { scale: 1, tx: 0, ty: 0 }
     apply()
     setZoomed(false)
-  }, [apply])
+  }, [apply, setZoomed])
 
   // 切换图片时复位
   useEffect(() => {
@@ -112,8 +135,14 @@ const ZoomableImage = ({
   }, [zoomAround])
 
   const onPointerDown = (e: React.PointerEvent) => {
-    ;(e.target as Element).setPointerCapture?.(e.pointerId)
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+    // 只在「双指捏合」或「已放大要平移」时独占指针。未放大的单指必须放走，
+    // 让它冒泡到外层的下滑关闭手势——无条件 setPointerCapture 会把 pointermove
+    // 全部锁在这里，外层 drag 永远收不到事件。
+    if (pointers.current.size === 2 || view.current.scale > MIN_SCALE) {
+      ;(e.target as Element).setPointerCapture?.(e.pointerId)
+    }
 
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()]
@@ -181,36 +210,58 @@ const ZoomableImage = ({
       onDoubleClick={(e) =>
         zoomAround({ x: e.clientX, y: e.clientY }, view.current.scale > 1 ? 1 : 2.5)
       }
-      className="lightbox-pop relative flex max-h-[86vh] max-w-[94vw] touch-none items-center justify-center overflow-hidden"
+      className="relative flex max-h-[86vh] max-w-[94vw] touch-none items-center justify-center overflow-hidden"
     >
-      {/* 缩略图垫底：点开即时显示（已缓存），原图加载完后被盖住 */}
-      {placeholder && !loaded && (
-        <img
+      {/* 缩略图垫底：点开即时显示（已缓存）。它同时承担两件事——
+          1) 定下整个舞台的尺寸（原图未加载时也不会塌成 0）；
+          2) 它才是带 layoutId 的共享元素，从网格那一格飞来、关闭时飞回去。
+          所以它**必须常驻**，不能像以前那样 loaded 后卸载，否则退场没有东西可飞。 */}
+      {placeholder ? (
+        <motion.img
+          layoutId={layoutId}
+          transition={springLayout}
           src={placeholder}
           alt=""
           aria-hidden
           draggable={false}
-          className="max-h-[86vh] max-w-[94vw] select-none rounded-lg object-contain shadow-2xl blur-[1px]"
+          className={`max-h-[86vh] max-w-[94vw] select-none rounded-lg object-contain shadow-2xl ${
+            loaded ? '' : 'blur-[1px]'
+          }`}
         />
-      )}
+      ) : null}
+
       {/* 加载中转圈 */}
       {!loaded && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <span className="h-8 w-8 animate-spin rounded-full border-2 border-paper-50/30 border-t-paper-50" />
         </div>
       )}
-      <img
-        ref={imgRef}
-        key={src}
-        src={src}
-        alt={alt}
-        draggable={false}
-        onLoad={() => setLoaded(true)}
-        className={`max-h-[86vh] max-w-[94vw] origin-center select-none rounded-lg object-contain shadow-2xl transition-opacity duration-500 will-change-transform ${
-          loaded ? 'opacity-100' : 'absolute opacity-0'
-        }`}
-        style={{ cursor: zoomed ? 'grab' : 'zoom-in' }}
-      />
+
+      {/* 原图：绝对覆盖在缩略图之上，加载完淡入。退场时这一层先淡掉（0.12s），
+          露出底下那张缩略图去飞回格子。外面包 motion.div 只管透明度，
+          里面的 <img> 保持普通元素——它的 transform 由缩放手势命令式接管，
+          交给 Motion 托管会和 Motion 自己的 transform 渲染打架。 */}
+      <motion.div
+        exit={{ opacity: 0, transition: { duration: 0.12 } }}
+        className={
+          placeholder
+            ? 'absolute inset-0 flex items-center justify-center'
+            : 'flex items-center justify-center'
+        }
+      >
+        <img
+          ref={imgRef}
+          key={src}
+          src={src}
+          alt={alt}
+          draggable={false}
+          onLoad={() => setLoaded(true)}
+          className={`max-h-[86vh] max-w-[94vw] origin-center select-none rounded-lg object-contain shadow-2xl transition-opacity duration-500 will-change-transform ${
+            loaded ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ cursor: zoomed ? 'grab' : 'zoom-in' }}
+        />
+      </motion.div>
     </div>
   )
 }

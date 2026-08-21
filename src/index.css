@@ -175,17 +175,6 @@ html.dark::view-transition-new(root) {
   }
 }
 
-@keyframes page-fade {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* 一言 crossfade：老的向上淡出，新的从下方淡入 */
 @keyframes hitokoto-in {
   from {
@@ -238,17 +227,6 @@ html.dark::view-transition-new(root) {
   animation: ken-burns 9s ease-out both;
 }
 
-/* 「喜欢」按钮点击时心形弹一下 */
-@keyframes like-pop {
-  0% { transform: scale(1); }
-  35% { transform: scale(1.45); }
-  60% { transform: scale(0.9); }
-  100% { transform: scale(1); }
-}
-.like-pop {
-  animation: like-pop 0.5s ease-out;
-}
-
 /* 状态点呼吸（halo） */
 .dot-pulse {
   position: relative;
@@ -264,25 +242,8 @@ html.dark::view-transition-new(root) {
   pointer-events: none;
 }
 
-/* 路由切换 */
-.anim-page {
-  animation: page-fade 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-/* 灯箱（点击放大）图片入场 */
-@keyframes lightbox-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-.lightbox-pop {
-  animation: lightbox-pop 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
+/* 灯箱入场原本是这里一段「凭空 pop」的 keyframes，现已换成 Motion 的 layoutId——
+   图从网格里它自己那一格连续放大过来，关闭时飞回去（见 PhotoCity.tsx / ZoomableImage.tsx）。 */
 
 /* 滚动入场：父级 .reveal-group 进入视口后子项依次播放 */
 .reveal-item {
@@ -296,6 +257,42 @@ html.dark::view-transition-new(root) {
 .reveal-group.is-visible .reveal-item {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ---------- 搜索深链：命中那句上的墨痕 ---------- */
+/* 由 ArticleDetail 在渲染后的 DOM 里手动插入 <mark class="search-hit">。
+   底色用 background-size 从 0% 刷到 100%（像笔从左划过），停一下再收成一条细下划线。
+   正文色保持 ink-900、底色压到 30%，别让命中那句变成全文最难读的一句。 */
+.search-hit {
+  background-color: transparent;
+  color: var(--color-ink-900);
+  background-image: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--color-coral-300) 55%, transparent),
+    color-mix(in srgb, var(--color-coral-300) 55%, transparent)
+  );
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 100%;
+  border-radius: 3px;
+  padding: 0 2px;
+  transition:
+    background-size 0.55s cubic-bezier(0.2, 0.7, 0.2, 1),
+    color 0.3s ease;
+}
+.search-hit.is-painted {
+  background-size: 100% 100%;
+}
+/* 收笔：整块底色缩成底部一条 2px 的痕 */
+.search-hit.is-underlined {
+  background-size: 100% 2px;
+  transition: background-size 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-hit {
+    transition: none !important;
+  }
 }
 
 /* Nav 下划线滑入 */
@@ -315,8 +312,9 @@ html.dark::view-transition-new(root) {
   transform-origin: left;
   transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-.nav-link:hover::after,
-.nav-link.is-active::after {
+/* 当前页的下划线交给 Motion 的 layoutId（见 Navbar.tsx）——那一条要在链接之间滑动，
+   CSS 的 ::after 做不到跨元素补间。这里只留「非当前页」的 hover 预览，避免两条重叠。 */
+.nav-link:not(.is-active):hover::after {
   transform: scaleX(1);
 }
 
@@ -569,7 +567,6 @@ html.dark .efold-top {
   .anim-fade-up,
   .anim-fade,
   .anim-ken-burns,
-  .anim-page,
   .anim-hitokoto-in,
   .anim-hitokoto-out,
   .reveal-item {

@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { motion, useScroll, useSpring } from 'motion/react'
 import LikeButton from '../components/LikeButton.tsx'
 import { articles, categoryMeta } from '../data/articles.ts'
 import { usePageTitle } from '../hooks/usePageTitle.ts'
 import { formatDate } from '../lib/date.ts'
+import { springLayout, springScroll, springTouch } from '../lib/motion.ts'
 
 const sortedArticles = [...articles].sort((a, b) => (a.date < b.date ? 1 : -1))
 
@@ -31,6 +33,49 @@ const extractToc = (md: string): TocItem[] => {
   return items
 }
 
+/**
+ * 在**渲染后**的正文 DOM 里找到 query 第一次出现的位置，包一层 <mark> 并返回它。
+ *
+ * 不能拿 Markdown 源码的字符偏移来定位：源码经 react-markdown 渲染后偏移全对不上，
+ * 而且第 i 个命中很可能落在代码块或链接 URL 里。这里直接走 TextNode，
+ * 并跳过 PRE / CODE / A —— 那些地方的命中对读者没意义。
+ */
+const markFirstHit = (root: HTMLElement, query: string): HTMLElement | null => {
+  const needle = query.trim().toLowerCase()
+  if (!needle) return null
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => {
+      const parent = (node as Text).parentElement
+      if (!parent) return NodeFilter.FILTER_REJECT
+      if (parent.closest('pre, code, a')) return NodeFilter.FILTER_REJECT
+      return NodeFilter.FILTER_ACCEPT
+    },
+  })
+
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent ?? ''
+    const at = text.toLowerCase().indexOf(needle)
+    if (at === -1) continue
+
+    const range = document.createRange()
+    range.setStart(node, at)
+    range.setEnd(node, at + needle.length)
+    const mark = document.createElement('mark')
+    mark.className = 'search-hit'
+    try {
+      // 命中跨越多个节点时 surroundContents 会抛 InvalidStateError——
+      // 那就放弃高亮，只把人滚过去，别让整个功能挂掉
+      range.surroundContents(mark)
+    } catch {
+      range.detach?.()
+      return null
+    }
+    return mark
+  }
+  return null
+}
+
 // 取渲染节点的纯文本（标题里带行内代码/加粗时也能得到完整文字做 id）
 const nodeText = (node: ReactNode): string => {
   if (node == null || typeof node === 'boolean') return ''
@@ -43,7 +88,15 @@ const nodeText = (node: ReactNode): string => {
 
 const ArticleDetail = () => {
   const { slug } = useParams<{ slug: string }>()
-  const [progress, setProgress] = useState(0)
+  const [searchParams] = useSearchParams()
+  const searchQuery = searchParams.get('q') ?? ''
+  const bodyRef = useRef<HTMLDivElement>(null)
+
+  // 阅读进度：scrollYProgress 是 MotionValue，直接喂给顶部进度条的 scaleX。
+  // 好处是滚动不再逐帧 setState 重渲染整篇文章，动画走在合成层上；
+  // 再套一层 spring 让进度追赶时有一点惯性，比线性 transition 顺。
+  const { scrollYProgress } = useScroll()
+  const progressScaleX = useSpring(scrollYProgress, springScroll)
 
   const article = useMemo(() => articles.find((a) => a.slug === slug), [slug])
   usePageTitle(article?.title ?? '文章')
@@ -88,6 +141,8 @@ const ArticleDetail = () => {
   }, [article])
 
   useEffect(() => {
+    // 带 ?q= 的搜索深链由下面那个 effect 负责定位，这里让开，别先把人弹到顶部
+    if (searchQuery) return
     // 带锚点的深链（分享的小节链接）优先定位到对应标题；中文 id 在 URL 里会被转义
     const hashId = decodeURIComponent(window.location.hash.slice(1))
     const target = hashId ? document.getElementById(hashId) : null
@@ -96,18 +151,55 @@ const ArticleDetail = () => {
       return
     }
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
-  }, [slug])
+  }, [slug, searchQuery])
 
+  // 从搜索结果点进来（?q=…）：在正文里找到命中的那一句，滚过去，
+  // 用一道墨痕从左刷过，停一下再收成一条细下划线。
   useEffect(() => {
-    const onScroll = () => {
-      const scrollTop = window.scrollY
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight
-      setProgress(docHeight > 0 ? Math.min(1, Math.max(0, scrollTop / docHeight)) : 0)
+    if (!searchQuery || !article) return
+    let cancelled = false
+    let mark: HTMLElement | null = null
+
+    const run = async () => {
+      // 必须等中文字体 swap 完成再量位置——自托管字体换上去会让整篇正文高度变化，
+      // 早一步滚过去会停在旧字体下的坐标上。再等两帧确保 markdown 已 commit。
+      try {
+        await document.fonts.ready
+      } catch {
+        /* 老浏览器没有 document.fonts：直接往下走 */
+      }
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+      if (cancelled || !bodyRef.current) return
+
+      mark = markFirstHit(bodyRef.current, searchQuery)
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const target = mark ?? bodyRef.current
+      target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' })
+
+      if (!mark) return
+      if (reduce) {
+        mark.classList.add('is-underlined')
+        return
+      }
+      // 墨痕刷过 → 停 1.2s → 收成下划线，全部由 CSS 过渡承接（见 index.css）
+      requestAnimationFrame(() => mark?.classList.add('is-painted'))
+      window.setTimeout(() => {
+        if (!cancelled) mark?.classList.add('is-underlined')
+      }, 1400)
     }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+    void run()
+
+    return () => {
+      cancelled = true
+      // 卸载/换文章时把手动插入的 <mark> 还原成纯文本，
+      // 免得 React 之后再渲染这棵子树时对不上
+      const parent = mark?.parentNode
+      if (mark && parent) {
+        parent.replaceChild(document.createTextNode(mark.textContent ?? ''), mark)
+        parent.normalize()
+      }
+    }
+  }, [searchQuery, article, slug])
 
   if (!article) {
     return (
@@ -129,9 +221,9 @@ const ArticleDetail = () => {
         aria-hidden
         className="fixed inset-x-0 top-0 z-30 h-0.5 bg-paper-200/40"
       >
-        <div
-          className="h-full bg-coral-500 transition-transform duration-150 ease-out"
-          style={{ transform: `scaleX(${progress})`, transformOrigin: 'left' }}
+        <motion.div
+          className="h-full origin-left bg-coral-500"
+          style={{ scaleX: progressScaleX }}
         />
       </div>
 
@@ -145,13 +237,23 @@ const ArticleDetail = () => {
               </p>
               <ul className="space-y-1.5">
                 {toc.map((item, i) => (
-                  <li key={`${item.id}-${i}`}>
-                    <a
+                  <li key={`${item.id}-${i}`} className="relative">
+                    {/* 当前小节的珊瑚色游标：贴在目录左边框上，随阅读在小节间滑动 */}
+                    {activeId === item.id && (
+                      <motion.span
+                        layoutId="toc-active"
+                        className="absolute -left-[17px] top-0 h-full w-0.5 rounded-full bg-coral-500"
+                        transition={springLayout}
+                      />
+                    )}
+                    <motion.a
                       href={`#${item.id}`}
                       onClick={(e) => {
                         e.preventDefault()
                         scrollToHeading(item.id)
                       }}
+                      whileHover={{ x: 3 }}
+                      transition={springTouch}
                       className={[
                         item.level === 3 ? 'pl-3' : '',
                         'block truncate text-xs leading-relaxed transition-colors',
@@ -161,7 +263,7 @@ const ArticleDetail = () => {
                       ].join(' ')}
                     >
                       {item.text}
-                    </a>
+                    </motion.a>
                   </li>
                 ))}
               </ul>
@@ -186,7 +288,10 @@ const ArticleDetail = () => {
           <p className="text-base text-ink-500 sm:text-lg">{article.excerpt}</p>
         </header>
         <hr className="my-10 border-paper-200" />
-        <div className="space-y-6 font-serif text-base leading-loose text-ink-700 sm:text-lg">
+        <div
+          ref={bodyRef}
+          className="space-y-6 font-serif text-base leading-loose text-ink-700 sm:text-lg"
+        >
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{

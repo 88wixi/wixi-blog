@@ -1,11 +1,14 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, useScroll, useTransform } from 'motion/react'
 import { articles, categoryMeta } from '../data/articles.ts'
 import { thumb } from '../data/photos.ts'
 import { formatDate } from '../lib/date.ts'
 import { usePageTitle } from '../hooks/usePageTitle.ts'
-import { useReveal } from '../hooks/useReveal.ts'
 import Hitokoto from '../components/Hitokoto.tsx'
+import { springLayout, springTouch, staggerContainer, staggerItem } from '../lib/motion.ts'
+
+const MotionLink = motion.create(Link)
 
 // Hero 图放自己的 R2（img.wixi88.xyz，国内可访问）；此前用 images.unsplash.com，
 // 大陆基本加载不出来。展示走 thumb() 缩略图变换，失败时 onError 回退原图。
@@ -33,8 +36,16 @@ const optical = (v: string): CSSProperties => (OPENING_PUNCT.test(v) ? { textInd
 const Home = () => {
   usePageTitle()
   const latest = [...articles].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 4)
-  const [latestRef, latestVisible] = useReveal<HTMLDivElement>()
   const [heroIndex, setHeroIndex] = useState(0)
+
+  // Hero 视差：往下滚时背景图比页面走得慢一点，露出「图在文字后面更远处」的层次。
+  // 图层容器做成 124% 高、上下各留 12% 余量，位移时才不会在顶部拉出空白。
+  const heroRef = useRef<HTMLElement>(null)
+  const { scrollYProgress: heroProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  })
+  const heroY = useTransform(heroProgress, [0, 1], ['0%', '10%'])
   // 只挂载「展示过的 + 下一张」：4 张大图全挂会在首屏一次性下载
   // （对视口内 opacity-0 的图，loading="lazy" 不生效）。展示过的保留以便淡出。
   const [heroMounted, setHeroMounted] = useState<Set<number>>(() => new Set([0]))
@@ -59,8 +70,8 @@ const Home = () => {
   return (
     <div>
       {/* Hero */}
-      <section className="relative h-[520px] w-full overflow-hidden sm:h-[560px]">
-        <div className="absolute inset-0">
+      <section ref={heroRef} className="relative h-[520px] w-full overflow-hidden sm:h-[560px]">
+        <motion.div className="absolute inset-x-0 -top-[12%] h-[124%]" style={{ y: heroY }}>
           {heroImages.map((src, i) =>
             heroMounted.has(i) ? (
               <img
@@ -78,7 +89,7 @@ const Home = () => {
               />
             ) : null,
           )}
-        </div>
+        </motion.div>
         <div className="absolute inset-0 bg-gradient-to-r from-paper-50/95 via-paper-50/80 to-paper-50/40" />
         <div className="relative mx-auto flex h-full w-full max-w-6xl items-center px-5 sm:px-8">
           <div className="max-w-xl space-y-6">
@@ -103,16 +114,22 @@ const Home = () => {
               一个安静但有锋利边界的个人博客,用来存放技术札记、阅读记录,以及对生活系统的观察。
             </p>
             <div className="anim-fade-up flex flex-wrap gap-3 pt-2" style={delay(400)}>
-              <Link
+              <MotionLink
                 to="/articles"
-                className="inline-flex items-center gap-2 rounded-lg bg-coral-500 px-5 py-2.5 text-sm font-medium text-paper-50 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-coral-600 hover:shadow-md"
+                whileHover={{ y: -3 }}
+                whileTap={{ scale: 0.96 }}
+                transition={springTouch}
+                className="group inline-flex items-center gap-2 rounded-lg bg-coral-500 px-5 py-2.5 text-sm font-medium text-paper-50 shadow-sm transition-colors hover:bg-coral-600 hover:shadow-md"
               >
                 开始阅读
-                <span aria-hidden className="transition-transform group-hover:translate-x-0.5">→</span>
-              </Link>
-              <Link
+                <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+              </MotionLink>
+              <MotionLink
                 to="/photos"
-                className="inline-flex items-center gap-2 rounded-lg border border-ink-900/10 bg-paper-50 px-5 py-2.5 text-sm font-medium text-ink-900 transition-all hover:-translate-y-0.5 hover:border-ink-900/30 hover:shadow-sm"
+                whileHover={{ y: -3 }}
+                whileTap={{ scale: 0.96 }}
+                transition={springTouch}
+                className="inline-flex items-center gap-2 rounded-lg border border-ink-900/10 bg-paper-50 px-5 py-2.5 text-sm font-medium text-ink-900 transition-colors hover:border-ink-900/30 hover:shadow-sm"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -120,23 +137,25 @@ const Home = () => {
                   <path d="m21 15-5-5L5 21" />
                 </svg>
                 看看照片
-              </Link>
+              </MotionLink>
             </div>
           </div>
 
           {/* 轮播指示器（右下角） */}
           <div className="absolute bottom-5 right-5 z-10 flex items-center gap-1.5 sm:bottom-6 sm:right-8">
             {heroImages.map((_, i) => (
-              <button
+              <motion.button
                 key={i}
                 type="button"
                 onClick={() => setHeroIndex(i)}
                 aria-label={`第 ${i + 1} 张`}
+                // 当前页的指示条用 spring 伸展，比 CSS 的定时 transition 更有弹性
+                animate={{ width: i === heroIndex ? 32 : 12 }}
+                whileHover={{ scaleY: 1.6 }}
+                transition={springLayout}
                 className={[
-                  'h-1.5 rounded-full transition-all duration-500',
-                  i === heroIndex
-                    ? 'w-8 bg-ink-900/70'
-                    : 'w-3 bg-ink-900/25 hover:bg-ink-900/40',
+                  'h-1.5 rounded-full',
+                  i === heroIndex ? 'bg-ink-900/70' : 'bg-ink-900/25 hover:bg-ink-900/40',
                 ].join(' ')}
               />
             ))}
@@ -217,18 +236,25 @@ const Home = () => {
           </Link>
         </div>
 
-        <div
-          ref={latestRef}
-          className={`reveal-group grid gap-5 sm:grid-cols-2 ${latestVisible ? 'is-visible' : ''}`}
+        {/* 滚动入场：whileInView + staggerChildren，卡片依次浮起。
+            once 让它只播一次，amount: 0.1 意味着露出一角就开始，长卡片不会卡在首屏空白。 */}
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.1 }}
+          className="grid gap-5 sm:grid-cols-2"
         >
-          {latest.map((article, i) => {
+          {latest.map((article) => {
             const meta = categoryMeta[article.category]
             return (
-              <Link
+              <MotionLink
                 key={article.slug}
                 to={`/articles/${article.slug}`}
-                style={{ ['--i' as string]: i }}
-                className="reveal-item group flex flex-col gap-3 rounded-2xl border border-paper-200 bg-paper-50 p-6 transition-all hover:-translate-y-0.5 hover:border-coral-400/50 hover:shadow-md sm:p-7"
+                variants={staggerItem}
+                whileHover={{ y: -5 }}
+                transition={springTouch}
+                className="group flex flex-col gap-3 rounded-2xl border border-paper-200 bg-paper-50 p-6 transition-colors hover:border-coral-400/50 hover:shadow-md sm:p-7"
               >
                 <div className="flex items-center justify-between">
                   <span
@@ -252,10 +278,10 @@ const Home = () => {
                     阅读 →
                   </span>
                 </div>
-              </Link>
+              </MotionLink>
             )
           })}
-        </div>
+        </motion.div>
       </section>
     </div>
   )
