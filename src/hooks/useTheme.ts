@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 
 type Theme = 'light' | 'dark'
@@ -31,55 +31,85 @@ const prefersReducedMotion = () =>
  */
 export const useTheme = () => {
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
+  const switching = useRef(false)
 
   const toggle = useCallback(
     async (origin?: Origin) => {
-      const next: Theme = theme === 'dark' ? 'light' : 'dark'
+      // 连续点击不能打断正在播放的快照，否则旧层会突然消失。
+      if (switching.current) return
+      switching.current = true
       const root = document.documentElement
+      const next: Theme = root.classList.contains('dark') ? 'light' : 'dark'
 
       const commit = () => {
-        flushSync(() => setTheme(next))
-        applyTheme(next)
+        flushSync(() => {
+          applyTheme(next)
+          setTheme(next)
+        })
       }
 
-      // 不支持 View Transitions（或用户偏好减少动效）：退回整页色彩渐变
-      if (!document.startViewTransition || !origin || prefersReducedMotion()) {
-        root.classList.add('theme-transition')
+      if (prefersReducedMotion()) {
         commit()
-        window.setTimeout(() => root.classList.remove('theme-transition'), 700)
+        switching.current = false
         return
       }
 
-      // 先让 View Transition 拍好新旧两张快照，再手动驱动圆形揭示
-      await document.startViewTransition(commit).ready
+      // 不支持 View Transitions：退回整页色彩渐变。
+      if (!document.startViewTransition || !origin) {
+        root.classList.add('theme-transition')
+        commit()
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 700))
+        root.classList.remove('theme-transition')
+        switching.current = false
+        return
+      }
 
-      const { x, y } = origin
-      const endRadius = Math.hypot(
-        Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y),
-      )
-      const atPoint = `circle(0px at ${x}px ${y}px)`
-      const atFull = `circle(${endRadius}px at ${x}px ${y}px)`
-      const goingDark = next === 'dark'
+      // 圆形揭示期间禁用元素自身的 CSS 过渡，确保新层从第一帧就是最终配色。
+      root.classList.add('theme-reveal')
+      let transition: ViewTransition | undefined
+      try {
+        transition = document.startViewTransition(commit)
+        await transition.ready
 
-      root.animate(
-        {
-          // 关灯：旧明亮层从满屏「收敛」到开关；开灯：新明亮层从开关「发散」铺满
-          clipPath: goingDark ? [atFull, atPoint] : [atPoint, atFull],
-        },
-        {
-          duration: 500,
-          easing: 'ease-in-out',
-          // forwards：保留终点裁剪状态，避免收敛到 0 后白层回弹满屏导致末尾闪烁
-          fill: 'forwards',
-          // 关灯动旧层（露出底下暗色），开灯动新层（盖住底下暗色）
-          pseudoElement: goingDark
-            ? '::view-transition-old(root)'
-            : '::view-transition-new(root)',
-        },
-      )
+        const { x, y } = origin
+        const endRadius = Math.hypot(
+          Math.max(x, window.innerWidth - x),
+          Math.max(y, window.innerHeight - y),
+        )
+        const atPoint = `circle(0px at ${x}px ${y}px)`
+        const atFull = `circle(${endRadius}px at ${x}px ${y}px)`
+        const goingDark = next === 'dark'
+
+        root.animate(
+          {
+            // 关灯收拢旧明亮层；开灯展开新明亮层。
+            clipPath: goingDark ? [atFull, atPoint] : [atPoint, atFull],
+          },
+          {
+            duration: 500,
+            easing: 'ease-in-out',
+            fill: 'forwards',
+            pseudoElement: goingDark
+              ? '::view-transition-old(root)'
+              : '::view-transition-new(root)',
+          },
+        )
+        await transition.finished
+      } catch {
+        // 页面失焦等情况可能跳过快照，仍等待主题提交完成并正常清理。
+        if (transition) {
+          transition.skipTransition()
+          await transition.updateCallbackDone.catch(() => {})
+          await transition.finished.catch(() => {})
+        } else {
+          commit()
+        }
+      } finally {
+        root.classList.remove('theme-reveal')
+        switching.current = false
+      }
     },
-    [theme],
+    [],
   )
 
   return { theme, isDark: theme === 'dark', toggle }

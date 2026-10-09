@@ -110,6 +110,31 @@ html.dark::view-transition-new(root) {
   z-index: 1;
 }
 
+/* 灯具单独成层，只显示新灯具，避免圆形揭示同时露出两份移动中的拉手。 */
+::view-transition-group(theme-pull) {
+  animation: none;
+  z-index: 10000;
+}
+::view-transition-old(theme-pull) {
+  animation: none;
+  opacity: 0;
+}
+::view-transition-new(theme-pull) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+.theme-reveal,
+.theme-reveal *,
+.theme-reveal *::before,
+.theme-reveal *::after {
+  transition: none !important;
+}
+
+.theme-reveal .theme-pull__cord {
+  height: var(--theme-pull-cord-height, 58px);
+}
+
 /* 兜底：不支持 View Transitions 时，整页色彩平滑过渡 */
 .theme-transition,
 .theme-transition *,
@@ -583,6 +608,7 @@ html.dark .efold-top {
 
 /* ---------- 右上角：灯具下垂的开关拉绳 ---------- */
 .theme-pull {
+  view-transition-name: theme-pull;
   position: fixed;
   top: 0;
   right: clamp(18px, 4vw, 48px);
